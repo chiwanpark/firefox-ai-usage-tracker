@@ -40,28 +40,34 @@ h2 {
   background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
-.organization + .organization {
+.provider + .provider {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.account + .account {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
 }
 
-.organization-head {
+.account-head {
   display: flex;
   align-items: baseline;
   gap: 6px;
   margin-bottom: 6px;
 }
 
-.organizations.single .organization-head {
+.accounts.single .account-head {
   display: none;
 }
 
-.organization-name {
+.account-name {
   font-weight: 600;
 }
 
-.organization-type {
+.account-type {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -120,9 +126,16 @@ h2 {
   background: #c0392b;
 }
 
-.limit-reset {
+.limit-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 11px;
   opacity: 0.7;
+}
+
+.limit-detail {
+  font-variant-numeric: tabular-nums;
 }
 
 .spend {

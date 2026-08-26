@@ -1,6 +1,16 @@
+import {
+  UsageError,
+  clampPercent,
+  fetchJson,
+  hasHostPermission,
+  humanize,
+  toErrorState,
+} from "./shared.js";
+
 export const CLAUDE_HOST_PERMISSION = "https://claude.ai/*";
 
 const API_BASE = "https://claude.ai/api";
+const SIGNED_OUT = "Sign in to claude.ai first.";
 
 const LIMIT_LABELS = {
   session: "Session",
@@ -17,55 +27,8 @@ const LEGACY_WINDOW_LABELS = {
   seven_day_cowork: "Weekly (Cowork)",
 };
 
-class UsageError extends Error {
-  constructor(state, message) {
-    super(message);
-    this.name = "UsageError";
-    this.state = state;
-  }
-}
-
-export function hasHostPermission() {
-  return browser.permissions.contains({ origins: [CLAUDE_HOST_PERMISSION] });
-}
-
-export function requestHostPermission() {
-  return browser.permissions.request({ origins: [CLAUDE_HOST_PERMISSION] });
-}
-
-async function getJson(path) {
-  let response;
-
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
-  } catch {
-    throw new UsageError("error", "Could not reach claude.ai.");
-  }
-
-  if (response.status === 401 || response.status === 403) {
-    throw new UsageError("signed-out", "Sign in to claude.ai first.");
-  }
-
-  if (!response.ok) {
-    throw new UsageError("error", `claude.ai returned ${response.status}.`);
-  }
-
-  try {
-    return await response.json();
-  } catch {
-    throw new UsageError("error", "Unexpected response from claude.ai.");
-  }
-}
-
-function humanize(key) {
-  return key.replaceAll("_", " ").replace(/^./, (char) => char.toUpperCase());
-}
-
-function clampPercent(value) {
-  return Math.min(Math.max(value, 0), 100);
+function getJson(path) {
+  return fetchJson(`${API_BASE}${path}`, { signedOutMessage: SIGNED_OUT });
 }
 
 async function fetchOrganizations() {
@@ -189,18 +152,18 @@ async function fetchOrganizationUsage(organization) {
       spend: toSpend(payload.spend),
     };
   } catch (error) {
-    return {
-      ...organization,
-      state: "error",
-      message: error instanceof UsageError ? error.message : "Unexpected error.",
-    };
+    return { ...organization, ...toErrorState(error) };
   }
 }
 
 export async function fetchClaudeUsage() {
-  const provider = { id: "claude", name: "Claude" };
+  const provider = {
+    id: "claude",
+    name: "Claude",
+    hostPermission: CLAUDE_HOST_PERMISSION,
+  };
 
-  if (!(await hasHostPermission())) {
+  if (!(await hasHostPermission(CLAUDE_HOST_PERMISSION))) {
     return {
       ...provider,
       state: "needs-permission",
@@ -214,14 +177,10 @@ export async function fetchClaudeUsage() {
     return {
       ...provider,
       state: "ok",
-      organizations: await Promise.all(organizations.map(fetchOrganizationUsage)),
+      accounts: await Promise.all(organizations.map(fetchOrganizationUsage)),
       fetchedAt: Date.now(),
     };
   } catch (error) {
-    return {
-      ...provider,
-      state: error instanceof UsageError ? error.state : "error",
-      message: error instanceof UsageError ? error.message : "Unexpected error.",
-    };
+    return { ...provider, ...toErrorState(error) };
   }
 }

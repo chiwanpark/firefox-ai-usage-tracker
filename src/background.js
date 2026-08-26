@@ -1,7 +1,7 @@
-import { fetchClaudeUsage } from "./providers/claude.js";
+import { fetchAllUsage } from "./providers/index.js";
 
 async function collectUsage() {
-  return { providers: [await fetchClaudeUsage()] };
+  return { providers: await fetchAllUsage() };
 }
 
 browser.runtime.onMessage.addListener((message) => {

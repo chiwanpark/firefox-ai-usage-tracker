@@ -14,16 +14,16 @@
     <template id="provider-template">
       <section class="provider">
         <h2></h2>
-        <div class="organizations"></div>
+        <div class="accounts"></div>
         <p class="message"></p>
         <button class="action" type="button"></button>
       </section>
     </template>
-    <template id="organization-template">
-      <article class="organization">
-        <div class="organization-head">
-          <span class="organization-name"></span>
-          <span class="organization-type"></span>
+    <template id="account-template">
+      <article class="account">
+        <div class="account-head">
+          <span class="account-name"></span>
+          <span class="account-type"></span>
         </div>
         <ul class="limits"></ul>
         <p class="spend"></p>
@@ -37,7 +37,10 @@
           <span class="limit-value"></span>
         </div>
         <div class="bar"><div class="bar-fill"></div></div>
-        <span class="limit-reset"></span>
+        <div class="limit-foot">
+          <span class="limit-detail"></span>
+          <span class="limit-reset"></span>
+        </div>
       </li>
     </template>
     <script src="popup.js" type="module"></script>

@@ -1,8 +1,8 @@
-import { requestHostPermission } from "../providers/claude.js";
+import { requestHostPermission } from "../providers/shared.js";
 
 const providersElement = document.querySelector("#providers");
 const providerTemplate = document.querySelector("#provider-template");
-const organizationTemplate = document.querySelector("#organization-template");
+const accountTemplate = document.querySelector("#account-template");
 const limitTemplate = document.querySelector("#limit-template");
 
 function formatReset(resetsAt) {
@@ -45,34 +45,35 @@ function renderLimit(limit) {
   node.querySelector(".limit-label").textContent = limit.label;
   node.querySelector(".limit-value").textContent = `${percent}%`;
   node.querySelector(".bar-fill").style.width = `${percent}%`;
+  node.querySelector(".limit-detail").textContent = limit.detail ?? "";
   node.querySelector(".limit-reset").textContent = formatReset(limit.resetsAt);
 
   return node;
 }
 
-function renderOrganization(organization) {
-  const node = organizationTemplate.content.cloneNode(true);
+function renderAccount(account) {
+  const node = accountTemplate.content.cloneNode(true);
   const limits = node.querySelector(".limits");
   const spend = node.querySelector(".spend");
   const message = node.querySelector(".message");
 
-  node.querySelector(".organization-name").textContent = organization.name;
-  node.querySelector(".organization-type").textContent = organization.type ?? "";
+  node.querySelector(".account-name").textContent = account.name;
+  node.querySelector(".account-type").textContent = account.type ?? "";
 
-  limits.hidden = organization.state !== "ok";
-  message.hidden = organization.state === "ok";
+  limits.hidden = account.state !== "ok";
+  message.hidden = account.state === "ok";
   spend.hidden = true;
 
-  if (organization.state === "ok") {
-    limits.append(...organization.limits.map(renderLimit));
+  if (account.state === "ok") {
+    limits.append(...account.limits.map(renderLimit));
 
-    if (organization.spend) {
+    if (account.spend) {
       spend.hidden = false;
-      spend.textContent = `${organization.spend.label}: ${organization.spend.text}`;
+      spend.textContent = `${account.spend.label}: ${account.spend.text}`;
     }
   } else {
-    message.textContent = organization.message;
-    message.classList.toggle("error", organization.state === "error");
+    message.textContent = account.message;
+    message.classList.toggle("error", account.state === "error");
   }
 
   return node;
@@ -80,18 +81,18 @@ function renderOrganization(organization) {
 
 function renderProvider(provider) {
   const node = providerTemplate.content.cloneNode(true);
-  const organizations = node.querySelector(".organizations");
+  const accounts = node.querySelector(".accounts");
   const message = node.querySelector(".message");
   const action = node.querySelector(".action");
 
   node.querySelector("h2").textContent = provider.name;
-  organizations.hidden = provider.state !== "ok";
+  accounts.hidden = provider.state !== "ok";
   message.hidden = provider.state === "ok";
   action.hidden = true;
 
   if (provider.state === "ok") {
-    organizations.append(...provider.organizations.map(renderOrganization));
-    organizations.classList.toggle("single", provider.organizations.length === 1);
+    accounts.append(...provider.accounts.map(renderAccount));
+    accounts.classList.toggle("single", provider.accounts.length === 1);
   } else {
     message.textContent = provider.message;
     message.classList.toggle("error", provider.state === "error");
@@ -101,17 +102,19 @@ function renderProvider(provider) {
     action.hidden = false;
     action.textContent = "Grant access";
     action.addEventListener("click", async () => {
-      if (await requestHostPermission()) {
+      if (await requestHostPermission(provider.hostPermission)) {
         await render();
       }
     });
   }
 
   if (provider.state === "signed-out") {
+    const host = new URL(provider.hostPermission.replace("/*", "/")).host;
+
     action.hidden = false;
-    action.textContent = "Open claude.ai";
+    action.textContent = `Open ${host}`;
     action.addEventListener("click", async () => {
-      await browser.tabs.create({ url: "https://claude.ai/" });
+      await browser.tabs.create({ url: `https://${host}/` });
       window.close();
     });
   }
