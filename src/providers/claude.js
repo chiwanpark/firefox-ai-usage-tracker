@@ -1,0 +1,227 @@
+export const CLAUDE_HOST_PERMISSION = "https://claude.ai/*";
+
+const API_BASE = "https://claude.ai/api";
+
+const LIMIT_LABELS = {
+  session: "Session",
+  weekly_all: "Weekly",
+  weekly_scoped: "Weekly",
+};
+
+const LEGACY_WINDOW_LABELS = {
+  five_hour: "Session",
+  seven_day: "Weekly",
+  seven_day_opus: "Weekly (Opus)",
+  seven_day_sonnet: "Weekly (Sonnet)",
+  seven_day_oauth_apps: "Weekly (apps)",
+  seven_day_cowork: "Weekly (Cowork)",
+};
+
+class UsageError extends Error {
+  constructor(state, message) {
+    super(message);
+    this.name = "UsageError";
+    this.state = state;
+  }
+}
+
+export function hasHostPermission() {
+  return browser.permissions.contains({ origins: [CLAUDE_HOST_PERMISSION] });
+}
+
+export function requestHostPermission() {
+  return browser.permissions.request({ origins: [CLAUDE_HOST_PERMISSION] });
+}
+
+async function getJson(path) {
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+  } catch {
+    throw new UsageError("error", "Could not reach claude.ai.");
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new UsageError("signed-out", "Sign in to claude.ai first.");
+  }
+
+  if (!response.ok) {
+    throw new UsageError("error", `claude.ai returned ${response.status}.`);
+  }
+
+  try {
+    return await response.json();
+  } catch {
+    throw new UsageError("error", "Unexpected response from claude.ai.");
+  }
+}
+
+function humanize(key) {
+  return key.replaceAll("_", " ").replace(/^./, (char) => char.toUpperCase());
+}
+
+function clampPercent(value) {
+  return Math.min(Math.max(value, 0), 100);
+}
+
+async function fetchOrganizations() {
+  const organizations = await getJson("/organizations");
+
+  if (!Array.isArray(organizations)) {
+    throw new UsageError("error", "Unexpected organization list from claude.ai.");
+  }
+
+  const usable = organizations
+    .filter((organization) => organization?.uuid)
+    .filter((organization) => organization?.capabilities?.includes("chat"))
+    .map((organization) => ({
+      id: organization.uuid,
+      name: organization.name ?? "Claude",
+      type: organization.raven_type ?? null,
+    }));
+
+  if (usable.length === 0) {
+    throw new UsageError("signed-out", "No Claude organization found.");
+  }
+
+  return usable;
+}
+
+function limitLabel(limit) {
+  const base = LIMIT_LABELS[limit.kind] ?? humanize(limit.kind ?? "limit");
+  const scope = limit.scope?.model?.display_name ?? limit.scope?.surface?.display_name;
+
+  return scope ? `${base} · ${scope}` : base;
+}
+
+function fromLimits(limits) {
+  if (!Array.isArray(limits)) {
+    return [];
+  }
+
+  return limits
+    .filter((limit) => typeof limit?.percent === "number")
+    .map((limit, index) => ({
+      id: `${limit.kind ?? "limit"}-${index}`,
+      label: limitLabel(limit),
+      percent: clampPercent(limit.percent),
+      resetsAt: limit.resets_at ?? null,
+      severity: limit.severity ?? "normal",
+      isActive: Boolean(limit.is_active),
+    }));
+}
+
+function fromLegacyWindows(payload) {
+  return Object.entries(payload)
+    .filter(([key]) => key in LEGACY_WINDOW_LABELS)
+    .filter(([, value]) => typeof value?.utilization === "number")
+    .map(([key, value]) => ({
+      id: key,
+      label: LEGACY_WINDOW_LABELS[key],
+      percent: clampPercent(value.utilization),
+      resetsAt: value.resets_at ?? null,
+      severity: "normal",
+      isActive: false,
+    }));
+}
+
+function formatMoney(amount) {
+  if (!amount || typeof amount.amount_minor !== "number") {
+    return null;
+  }
+
+  const exponent = typeof amount.exponent === "number" ? amount.exponent : 2;
+  const currency = amount.currency ?? "USD";
+
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(
+      amount.amount_minor / 10 ** exponent,
+    );
+  } catch {
+    return `${(amount.amount_minor / 10 ** exponent).toFixed(exponent)} ${currency}`;
+  }
+}
+
+function toSpend(spend) {
+  if (!spend?.enabled) {
+    return null;
+  }
+
+  const used = formatMoney(spend.used);
+
+  if (!used) {
+    return null;
+  }
+
+  const limit = formatMoney(spend.limit);
+
+  return {
+    label: "Extra usage",
+    text: limit ? `${used} of ${limit}` : used,
+    percent: typeof spend.percent === "number" ? clampPercent(spend.percent) : null,
+    severity: spend.severity ?? "normal",
+  };
+}
+
+async function fetchOrganizationUsage(organization) {
+  try {
+    const payload = await getJson(`/organizations/${organization.id}/usage`);
+
+    if (!payload || typeof payload !== "object") {
+      throw new UsageError("error", "Unexpected usage response from claude.ai.");
+    }
+
+    const limits = fromLimits(payload.limits);
+    const usageLimits = limits.length > 0 ? limits : fromLegacyWindows(payload);
+
+    if (usageLimits.length === 0) {
+      return { ...organization, state: "empty", message: "No usage reported." };
+    }
+
+    return {
+      ...organization,
+      state: "ok",
+      limits: usageLimits,
+      spend: toSpend(payload.spend),
+    };
+  } catch (error) {
+    return {
+      ...organization,
+      state: "error",
+      message: error instanceof UsageError ? error.message : "Unexpected error.",
+    };
+  }
+}
+
+export async function fetchClaudeUsage() {
+  const provider = { id: "claude", name: "Claude" };
+
+  if (!(await hasHostPermission())) {
+    return {
+      ...provider,
+      state: "needs-permission",
+      message: "Grant access to claude.ai to read usage.",
+    };
+  }
+
+  try {
+    const organizations = await fetchOrganizations();
+
+    return {
+      ...provider,
+      state: "ok",
+      organizations: await Promise.all(organizations.map(fetchOrganizationUsage)),
+      fetchedAt: Date.now(),
+    };
+  } catch (error) {
+    return {
+      ...provider,
+      state: error instanceof UsageError ? error.state : "error",
+      message: error instanceof UsageError ? error.message : "Unexpected error.",
+    };
+  }
+}

@@ -8,11 +8,38 @@
   <body>
     <header>
       <h1>AI Usage Tracker</h1>
+      <button id="refresh" type="button" title="Refresh">↻</button>
     </header>
-    <main>
-      <ul id="usage-list"></ul>
-      <p id="empty-state">No usage data yet.</p>
-    </main>
-    <script src="popup.js"></script>
+    <main id="providers"></main>
+    <template id="provider-template">
+      <section class="provider">
+        <h2></h2>
+        <div class="organizations"></div>
+        <p class="message"></p>
+        <button class="action" type="button"></button>
+      </section>
+    </template>
+    <template id="organization-template">
+      <article class="organization">
+        <div class="organization-head">
+          <span class="organization-name"></span>
+          <span class="organization-type"></span>
+        </div>
+        <ul class="limits"></ul>
+        <p class="spend"></p>
+        <p class="message"></p>
+      </article>
+    </template>
+    <template id="limit-template">
+      <li class="limit">
+        <div class="limit-head">
+          <span class="limit-label"></span>
+          <span class="limit-value"></span>
+        </div>
+        <div class="bar"><div class="bar-fill"></div></div>
+        <span class="limit-reset"></span>
+      </li>
+    </template>
+    <script src="popup.js" type="module"></script>
   </body>
 </html>

@@ -4,7 +4,7 @@ A Firefox extension that shows usage of LLM services.
 
 ## Status
 
-- Not implemented yet.
+- Claude (claude.ai subscription usage) — reads the rolling utilization windows from your signed-in session.
 
 ## Development
 
