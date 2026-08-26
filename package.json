@@ -1,0 +1,18 @@
+{
+  "name": "firefox-ai-usage-tracker",
+  "version": "0.1.0",
+  "description": "Firefox extension that shows usage of LLM services.",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "start": "web-ext run",
+    "lint": "web-ext lint",
+    "build": "web-ext build"
+  },
+  "devDependencies": {
+    "web-ext": "^8.3.0"
+  }
+}
