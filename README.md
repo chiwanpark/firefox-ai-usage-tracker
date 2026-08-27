@@ -6,6 +6,7 @@ A Firefox extension that shows usage of LLM services.
 
 - Claude (claude.ai subscription usage) — reads the rolling utilization windows from your signed-in session.
 - ChatGPT (chatgpt.com subscription usage) — reads the rate-limit windows from your signed-in session.
+- GitHub Copilot (AI credits) — reads the billing usage report; needs a fine-grained token with `Plan: read` configured in settings.
 
 ## Development
 

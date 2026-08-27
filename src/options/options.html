@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Usage Tracker settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <h1>GitHub Copilot</h1>
+    <p class="hint">
+      Needs a fine-grained personal access token with the <strong>Plan</strong> user permission set
+      to read. Usage is only reported for accounts on the enhanced billing platform.
+    </p>
+    <form id="copilot-form">
+      <label for="username">GitHub username</label>
+      <input id="username" name="username" type="text" autocomplete="username" spellcheck="false" />
+
+      <label for="token">Token</label>
+      <input id="token" name="token" type="password" autocomplete="off" spellcheck="false" />
+
+      <label for="plan">Plan</label>
+      <select id="plan" name="plan"></select>
+
+      <label for="allowance" id="allowance-label">Monthly AI credits</label>
+      <input id="allowance" name="allowance" type="number" min="1" step="1" />
+
+      <div class="actions">
+        <button type="submit">Save</button>
+        <button type="button" id="grant">Grant API access</button>
+        <span id="status" role="status"></span>
+      </div>
+    </form>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

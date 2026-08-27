@@ -35,16 +35,27 @@ function formatReset(resetsAt) {
   return `resets in ${Math.floor(hours / 24)}d ${hours % 24}h`;
 }
 
+function formatPercent(percent) {
+  if (percent > 0 && percent < 1) {
+    return "<1%";
+  }
+
+  return `${Math.round(percent)}%`;
+}
+
 function renderLimit(limit) {
   const node = limitTemplate.content.cloneNode(true);
   const item = node.querySelector(".limit");
-  const percent = Math.round(limit.percent);
+  const hasPercent = typeof limit.percent === "number";
+  const percent = hasPercent ? limit.percent : 0;
 
   item.classList.add(`severity-${limit.severity}`);
   item.classList.toggle("active", limit.isActive);
   node.querySelector(".limit-label").textContent = limit.label;
-  node.querySelector(".limit-value").textContent = `${percent}%`;
-  node.querySelector(".bar-fill").style.width = `${percent}%`;
+  node.querySelector(".limit-value").textContent = hasPercent ? formatPercent(percent) : "";
+  node.querySelector(".bar").hidden = !hasPercent;
+  node.querySelector(".bar-fill").style.width =
+    percent > 0 ? `max(${percent}%, 2px)` : "0";
   node.querySelector(".limit-detail").textContent = limit.detail ?? "";
   node.querySelector(".limit-reset").textContent = formatReset(limit.resetsAt);
 
@@ -106,6 +117,12 @@ function renderProvider(provider) {
         await render();
       }
     });
+  }
+
+  if (provider.state === "needs-config") {
+    action.hidden = false;
+    action.textContent = "Open settings";
+    action.addEventListener("click", () => browser.runtime.openOptionsPage());
   }
 
   if (provider.state === "signed-out") {

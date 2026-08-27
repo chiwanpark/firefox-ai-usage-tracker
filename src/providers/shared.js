@@ -14,20 +14,35 @@ export function requestHostPermission(origin) {
   return browser.permissions.request({ origins: [origin] });
 }
 
-export async function fetchJson(url, { headers = {}, signedOutMessage } = {}) {
+export async function fetchJson(
+  url,
+  {
+    headers = {},
+    signedOutMessage,
+    credentials = "include",
+    authState = "signed-out",
+    statusOverrides = {},
+  } = {},
+) {
   let response;
 
   try {
     response = await fetch(url, {
-      credentials: "include",
+      credentials,
       headers: { Accept: "application/json", ...headers },
     });
   } catch {
     throw new UsageError("error", `Could not reach ${new URL(url).host}.`);
   }
 
+  const override = statusOverrides[response.status];
+
+  if (override) {
+    throw new UsageError(override.state ?? "error", override.message);
+  }
+
   if (response.status === 401 || response.status === 403) {
-    throw new UsageError("signed-out", signedOutMessage ?? "Sign in first.");
+    throw new UsageError(authState, signedOutMessage ?? "Sign in first.");
   }
 
   if (!response.ok) {
