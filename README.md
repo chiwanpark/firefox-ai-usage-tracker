@@ -22,3 +22,7 @@ pnpm build
 ```
 
 Alternatively load it manually: open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**, and select `manifest.json`.
+
+## License
+
+[MIT](LICENSE)
