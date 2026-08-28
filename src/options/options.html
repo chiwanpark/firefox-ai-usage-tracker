@@ -6,7 +6,21 @@
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <h1>GitHub Copilot</h1>
+    <h1>AI Usage Tracker</h1>
+
+    <h2>Refresh</h2>
+    <p class="hint">
+      How often usage is refreshed in the background. The popup always refreshes when opened.
+    </p>
+    <div class="field">
+      <label for="refresh-minutes">Update usage</label>
+      <div class="row">
+        <select id="refresh-minutes"></select>
+        <span id="refresh-status" role="status"></span>
+      </div>
+    </div>
+
+    <h2>GitHub Copilot</h2>
     <p class="hint">
       Needs a fine-grained personal access token with the <strong>Plan</strong> user permission set
       to read. Usage is only reported for accounts on the enhanced billing platform.

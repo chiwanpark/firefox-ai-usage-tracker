@@ -11,8 +11,23 @@ body {
 }
 
 h1 {
-  margin: 0 0 6px;
+  margin: 0 0 14px;
   font-size: 15px;
+}
+
+h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+h2 + .hint {
+  margin-bottom: 8px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
 }
 
 .hint {
@@ -40,11 +55,26 @@ select {
   font: inherit;
 }
 
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row select {
+  flex: 1;
+}
+
 .actions {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 10px;
+}
+
+#refresh-status {
+  opacity: 0.75;
+  white-space: nowrap;
 }
 
 button {

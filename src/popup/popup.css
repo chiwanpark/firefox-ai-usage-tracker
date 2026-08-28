@@ -13,13 +13,25 @@ body {
 header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
 h1 {
+  flex: 1;
   margin: 0;
   font-size: 14px;
+}
+
+#status {
+  font-size: 11px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+#refresh:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 h2 {
@@ -152,6 +164,50 @@ h2 {
 .message.error {
   color: #c0392b;
   opacity: 1;
+}
+
+.stale {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #d98324;
+}
+
+.skeleton-row + .skeleton-row {
+  margin-top: 8px;
+}
+
+.skeleton-line,
+.skeleton-bar {
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+  width: 45%;
+  height: 10px;
+  margin-bottom: 4px;
+}
+
+.skeleton-line.short {
+  width: 30%;
+}
+
+.skeleton-bar {
+  height: 6px;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line,
+  .skeleton-bar {
+    animation: none;
+  }
 }
 
 .action {

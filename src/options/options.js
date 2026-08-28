@@ -1,18 +1,26 @@
 import { COPILOT_HOST_PERMISSION, COPILOT_PLANS } from "../providers/copilot.js";
 import { hasHostPermission, requestHostPermission } from "../providers/shared.js";
-import { getCopilotSettings, saveCopilotSettings } from "../settings.js";
+import {
+  REFRESH_OPTIONS,
+  getCopilotSettings,
+  getGeneralSettings,
+  saveCopilotSettings,
+  saveGeneralSettings,
+} from "../settings.js";
 
 const form = document.querySelector("#copilot-form");
+const refreshSelect = document.querySelector("#refresh-minutes");
 const planSelect = document.querySelector("#plan");
 const allowanceInput = document.querySelector("#allowance");
 const allowanceLabel = document.querySelector("#allowance-label");
 const grantButton = document.querySelector("#grant");
 const status = document.querySelector("#status");
+const refreshStatus = document.querySelector("#refresh-status");
 
-function showStatus(text) {
-  status.textContent = text;
+function showStatus(element, text) {
+  element.textContent = text;
   setTimeout(() => {
-    status.textContent = "";
+    element.textContent = "";
   }, 2500);
 }
 
@@ -44,7 +52,24 @@ function fillPlans() {
   );
 }
 
+function fillRefreshOptions() {
+  refreshSelect.replaceChildren(
+    ...REFRESH_OPTIONS.map((option) => {
+      const element = document.createElement("option");
+
+      element.value = String(option.minutes);
+      element.textContent = option.label;
+
+      return element;
+    }),
+  );
+}
+
 async function load() {
+  const general = await getGeneralSettings();
+
+  refreshSelect.value = String(general.refreshMinutes);
+
   const settings = await getCopilotSettings();
 
   form.username.value = settings.username;
@@ -66,17 +91,23 @@ form.addEventListener("submit", async (event) => {
     allowance: allowanceInput.value.trim(),
   });
 
-  showStatus("Saved.");
+  showStatus(status, "Saved.");
 });
 
 planSelect.addEventListener("change", syncAllowanceVisibility);
 
+refreshSelect.addEventListener("change", async () => {
+  await saveGeneralSettings({ refreshMinutes: Number(refreshSelect.value) });
+  showStatus(refreshStatus, "Saved.");
+});
+
 grantButton.addEventListener("click", async () => {
   if (await requestHostPermission(COPILOT_HOST_PERMISSION)) {
     await syncGrantButton();
-    showStatus("Access granted.");
+    showStatus(status, "Access granted.");
   }
 });
 
+fillRefreshOptions();
 fillPlans();
 load();

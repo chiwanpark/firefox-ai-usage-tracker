@@ -2,8 +2,8 @@ import { fetchClaudeUsage } from "./claude.js";
 import { fetchCopilotUsage } from "./copilot.js";
 import { fetchOpenAiUsage } from "./openai.js";
 
-const PROVIDERS = [fetchClaudeUsage, fetchOpenAiUsage, fetchCopilotUsage];
-
-export function fetchAllUsage() {
-  return Promise.all(PROVIDERS.map((fetchUsage) => fetchUsage()));
-}
+export const PROVIDERS = [
+  { id: "claude", name: "Claude", fetchUsage: fetchClaudeUsage },
+  { id: "openai", name: "ChatGPT", fetchUsage: fetchOpenAiUsage },
+  { id: "copilot", name: "GitHub Copilot", fetchUsage: fetchCopilotUsage },
+];

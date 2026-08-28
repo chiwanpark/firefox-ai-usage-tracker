@@ -1,9 +1,31 @@
 import { requestHostPermission } from "../providers/shared.js";
 
 const providersElement = document.querySelector("#providers");
+const statusElement = document.querySelector("#status");
+const refreshButton = document.querySelector("#refresh");
 const providerTemplate = document.querySelector("#provider-template");
 const accountTemplate = document.querySelector("#account-template");
 const limitTemplate = document.querySelector("#limit-template");
+
+const REFRESH_TIMEOUT_MS = 20000;
+
+let entries = [];
+let refreshing = false;
+let refreshTimer = null;
+
+function formatDuration(minutes) {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours}h ${minutes % 60}m`;
+  }
+
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
 
 function formatReset(resetsAt) {
   if (!resetsAt) {
@@ -18,21 +40,25 @@ function formatReset(resetsAt) {
 
   const minutes = Math.round((target.getTime() - Date.now()) / 60000);
 
-  if (minutes <= 0) {
-    return "resets now";
+  return minutes <= 0 ? "resets now" : `resets in ${formatDuration(minutes)}`;
+}
+
+function formatAgo(timestamp) {
+  const minutes = Math.floor((Date.now() - timestamp) / 60000);
+
+  return minutes < 1 ? "just now" : `${formatDuration(minutes)} ago`;
+}
+
+function updateStatus() {
+  if (refreshing) {
+    statusElement.textContent = "Refreshing…";
+    return;
   }
 
-  if (minutes < 60) {
-    return `resets in ${minutes}m`;
-  }
+  const timestamps = entries.map((entry) => entry.fetchedAt).filter(Boolean);
 
-  const hours = Math.floor(minutes / 60);
-
-  if (hours < 24) {
-    return `resets in ${hours}h ${minutes % 60}m`;
-  }
-
-  return `resets in ${Math.floor(hours / 24)}d ${hours % 24}h`;
+  statusElement.textContent =
+    timestamps.length === 0 ? "" : `Updated ${formatAgo(Math.min(...timestamps))}`;
 }
 
 function formatPercent(percent) {
@@ -54,8 +80,7 @@ function renderLimit(limit) {
   node.querySelector(".limit-label").textContent = limit.label;
   node.querySelector(".limit-value").textContent = hasPercent ? formatPercent(percent) : "";
   node.querySelector(".bar").hidden = !hasPercent;
-  node.querySelector(".bar-fill").style.width =
-    percent > 0 ? `max(${percent}%, 2px)` : "0";
+  node.querySelector(".bar-fill").style.width = percent > 0 ? `max(${percent}%, 2px)` : "0";
   node.querySelector(".limit-detail").textContent = limit.detail ?? "";
   node.querySelector(".limit-reset").textContent = formatReset(limit.resetsAt);
 
@@ -90,21 +115,31 @@ function renderAccount(account) {
   return node;
 }
 
-function renderProvider(provider) {
+function renderProvider(entry) {
+  const { provider } = entry;
   const node = providerTemplate.content.cloneNode(true);
   const accounts = node.querySelector(".accounts");
   const message = node.querySelector(".message");
+  const stale = node.querySelector(".stale");
   const action = node.querySelector(".action");
+  const skeleton = node.querySelector(".skeleton");
+  const isLoading = provider.state === "loading";
 
   node.querySelector("h2").textContent = provider.name;
+  skeleton.hidden = !isLoading;
   accounts.hidden = provider.state !== "ok";
-  message.hidden = provider.state === "ok";
+  message.hidden = provider.state === "ok" || isLoading;
+  stale.hidden = !entry.error;
   action.hidden = true;
+
+  if (entry.error) {
+    stale.textContent = `Last refresh failed: ${entry.error.message}`;
+  }
 
   if (provider.state === "ok") {
     accounts.append(...provider.accounts.map(renderAccount));
     accounts.classList.toggle("single", provider.accounts.length === 1);
-  } else {
+  } else if (!isLoading) {
     message.textContent = provider.message;
     message.classList.toggle("error", provider.state === "error");
   }
@@ -114,7 +149,7 @@ function renderProvider(provider) {
     action.textContent = "Grant access";
     action.addEventListener("click", async () => {
       if (await requestHostPermission(provider.hostPermission)) {
-        await render();
+        await triggerRefresh();
       }
     });
   }
@@ -139,14 +174,59 @@ function renderProvider(provider) {
   return node;
 }
 
-async function render() {
-  providersElement.replaceChildren();
-
-  const response = await browser.runtime.sendMessage({ type: "getUsage" });
-  const providers = response?.providers ?? [];
-
-  providersElement.append(...providers.map(renderProvider));
+function renderAll() {
+  providersElement.replaceChildren(...entries.map(renderProvider));
+  updateStatus();
 }
 
-document.querySelector("#refresh").addEventListener("click", render);
-render();
+function upsert(entry) {
+  const index = entries.findIndex((current) => current.provider.id === entry.provider.id);
+
+  if (index === -1) {
+    entries.push(entry);
+  } else {
+    entries[index] = entry;
+  }
+}
+
+function endRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = null;
+  refreshing = false;
+  refreshButton.disabled = false;
+  updateStatus();
+}
+
+async function triggerRefresh() {
+  refreshing = true;
+  refreshButton.disabled = true;
+  updateStatus();
+
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(endRefresh, REFRESH_TIMEOUT_MS);
+
+  await browser.runtime.sendMessage({ type: "refreshUsage" });
+}
+
+browser.runtime.onMessage.addListener((message) => {
+  if (message?.type === "usageUpdated") {
+    upsert(message.entry);
+    renderAll();
+  }
+
+  if (message?.type === "refreshDone") {
+    endRefresh();
+  }
+});
+
+refreshButton.addEventListener("click", triggerRefresh);
+
+async function init() {
+  const response = await browser.runtime.sendMessage({ type: "getUsage" });
+
+  entries = response?.entries ?? [];
+  renderAll();
+  await triggerRefresh();
+}
+
+init();

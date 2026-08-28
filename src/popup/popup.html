@@ -8,6 +8,7 @@
   <body>
     <header>
       <h1>AI Usage Tracker</h1>
+      <span id="status"></span>
       <button id="refresh" type="button" title="Refresh">↻</button>
     </header>
     <main id="providers"></main>
@@ -16,7 +17,18 @@
         <h2></h2>
         <div class="accounts"></div>
         <p class="message"></p>
+        <p class="stale"></p>
         <button class="action" type="button"></button>
+        <div class="skeleton">
+          <div class="skeleton-row">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-bar"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-bar"></div>
+          </div>
+        </div>
       </section>
     </template>
     <template id="account-template">
