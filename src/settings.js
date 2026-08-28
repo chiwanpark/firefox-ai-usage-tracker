@@ -1,6 +1,13 @@
 export const GENERAL_DEFAULTS = {
   refreshMinutes: 10,
+  tabAppearance: "inline",
 };
+
+export const TAB_APPEARANCE_OPTIONS = [
+  { id: "inline", label: "Icon with label" },
+  { id: "icon", label: "Icon only" },
+  { id: "stacked", label: "Icon above label" },
+];
 
 export const REFRESH_OPTIONS = [
   { minutes: 0, label: "Only when opened" },
@@ -18,7 +25,9 @@ export async function getGeneralSettings() {
 }
 
 export async function saveGeneralSettings(values) {
-  await browser.storage.local.set({ general: { ...GENERAL_DEFAULTS, ...values } });
+  const current = await getGeneralSettings();
+
+  await browser.storage.local.set({ general: { ...current, ...values } });
 }
 
 export const PROVIDER_DEFAULTS = {

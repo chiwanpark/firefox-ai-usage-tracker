@@ -1,4 +1,5 @@
 import { requestHostPermission } from "../providers/shared.js";
+import { getGeneralSettings } from "../settings.js";
 
 const tabsElement = document.querySelector("#tabs");
 const panelElement = document.querySelector("#panel");
@@ -491,6 +492,8 @@ function renderTabs() {
     tab.id = `tab-${descriptor.id}`;
     tab.dataset.tab = descriptor.id;
     tab.dataset.provider = descriptor.id;
+    tab.title = descriptor.label;
+    tab.setAttribute("aria-label", descriptor.label);
     tab.classList.toggle("active", isActive);
     tab.setAttribute("aria-selected", String(isActive));
     tab.tabIndex = isActive ? 0 : -1;
@@ -536,6 +539,12 @@ function renderAll() {
   renderTabs();
   renderPanel();
   updateStatus();
+}
+
+async function applyTabAppearance() {
+  const { tabAppearance } = await getGeneralSettings();
+
+  tabsElement.dataset.appearance = tabAppearance;
 }
 
 function storeActiveTab() {
@@ -619,6 +628,12 @@ tabsElement.addEventListener("keydown", (event) => {
 
 settingsButton.addEventListener("click", openSettings);
 
+browser.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.general) {
+    applyTabAppearance();
+  }
+});
+
 browser.runtime.onMessage.addListener((message) => {
   if (message?.type === "usageUpdated") {
     upsert(message.entry);
@@ -638,6 +653,7 @@ async function init() {
   const [response] = await Promise.all([
     browser.runtime.sendMessage({ type: "getUsage" }),
     restoreActiveTab(),
+    applyTabAppearance(),
   ]);
 
   entries = response?.entries ?? [];

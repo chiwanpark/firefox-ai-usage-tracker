@@ -129,6 +129,38 @@ h1 {
   background: var(--accent);
 }
 
+.tabs[data-appearance="icon"] .tab,
+.tabs[data-appearance="stacked"] .tab {
+  justify-content: center;
+}
+
+.tabs[data-appearance="icon"] .tab-icon,
+.tabs[data-appearance="stacked"] .tab-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tabs[data-appearance="icon"] .tab {
+  padding-inline: 11px;
+}
+
+.tabs[data-appearance="icon"] .tab-label {
+  display: none;
+}
+
+.tabs[data-appearance="stacked"] .tab {
+  position: relative;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px 10px;
+}
+
+.tabs[data-appearance="stacked"] .tab-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
 .panel {
   min-height: 220px;
   max-height: 420px;

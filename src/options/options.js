@@ -4,6 +4,7 @@ import { PROVIDERS } from "../providers/index.js";
 import { hasHostPermission, requestHostPermission } from "../providers/shared.js";
 import {
   REFRESH_OPTIONS,
+  TAB_APPEARANCE_OPTIONS,
   accountKey,
   getCopilotSettings,
   getGeneralSettings,
@@ -22,12 +23,14 @@ const providerList = document.querySelector("#providers");
 const copilotSection = document.querySelector("#copilot-section");
 const providerStatus = document.querySelector("#provider-status");
 const refreshSelect = document.querySelector("#refresh-minutes");
+const appearanceSelect = document.querySelector("#tab-appearance");
 const planSelect = document.querySelector("#plan");
 const allowanceInput = document.querySelector("#allowance");
 const allowanceLabel = document.querySelector("#allowance-label");
 const grantButton = document.querySelector("#grant");
 const status = document.querySelector("#status");
 const refreshStatus = document.querySelector("#refresh-status");
+const appearanceStatus = document.querySelector("#appearance-status");
 
 function showStatus(element, text) {
   element.textContent = text;
@@ -284,31 +287,40 @@ async function syncGrantButton() {
   grantButton.hidden = granted;
 }
 
-function fillPlans() {
-  planSelect.replaceChildren(
-    ...COPILOT_PLANS.map((plan) => {
-      const option = document.createElement("option");
+function fillSelect(select, options) {
+  select.replaceChildren(
+    ...options.map(({ value, label }) => {
+      const element = document.createElement("option");
 
-      option.value = plan.id;
-      option.textContent = plan.allowance
-        ? `${plan.label} (${plan.allowance}/month)`
-        : plan.label;
+      element.value = value;
+      element.textContent = label;
 
-      return option;
+      return element;
     }),
   );
 }
 
+function fillPlans() {
+  fillSelect(
+    planSelect,
+    COPILOT_PLANS.map((plan) => ({
+      value: plan.id,
+      label: plan.allowance ? `${plan.label} (${plan.allowance}/month)` : plan.label,
+    })),
+  );
+}
+
 function fillRefreshOptions() {
-  refreshSelect.replaceChildren(
-    ...REFRESH_OPTIONS.map((option) => {
-      const element = document.createElement("option");
+  fillSelect(
+    refreshSelect,
+    REFRESH_OPTIONS.map((option) => ({ value: String(option.minutes), label: option.label })),
+  );
+}
 
-      element.value = String(option.minutes);
-      element.textContent = option.label;
-
-      return element;
-    }),
+function fillAppearanceOptions() {
+  fillSelect(
+    appearanceSelect,
+    TAB_APPEARANCE_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
   );
 }
 
@@ -316,6 +328,7 @@ async function load() {
   const general = await getGeneralSettings();
 
   refreshSelect.value = String(general.refreshMinutes);
+  appearanceSelect.value = general.tabAppearance;
 
   await fillProviders();
 
@@ -350,6 +363,11 @@ refreshSelect.addEventListener("change", async () => {
   showStatus(refreshStatus, "Saved.");
 });
 
+appearanceSelect.addEventListener("change", async () => {
+  await saveGeneralSettings({ tabAppearance: appearanceSelect.value });
+  showStatus(appearanceStatus, "Saved.");
+});
+
 browser.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.usageCache) {
     fillProviders();
@@ -364,5 +382,6 @@ grantButton.addEventListener("click", async () => {
 });
 
 fillRefreshOptions();
+fillAppearanceOptions();
 fillPlans();
 load();

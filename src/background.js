@@ -144,12 +144,16 @@ async function applyAlarm() {
   }
 }
 
+function refreshMinutesChanged(change) {
+  return change.newValue?.refreshMinutes !== change.oldValue?.refreshMinutes;
+}
+
 browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") {
     return;
   }
 
-  if (changes.general) {
+  if (changes.general && refreshMinutesChanged(changes.general)) {
     applyAlarm();
   }
 
