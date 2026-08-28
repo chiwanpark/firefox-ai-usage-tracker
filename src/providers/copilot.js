@@ -109,7 +109,6 @@ function toLimits(report, items, allowance) {
     id: "ai-usage",
     label: report.label,
     resetsAt: nextResetAt(),
-    isActive: false,
   };
 
   if (allowance === null) {

@@ -211,7 +211,6 @@ function renderLimit(limit) {
   const reset = node.querySelector(".limit-reset");
   const detail = node.querySelector(".limit-detail");
 
-  node.querySelector(".limit").classList.toggle("active", Boolean(limit.isActive));
   node.querySelector(".limit-label").textContent = limit.label;
 
   value.textContent = hasPercent ? `${formatPercent(limit.percent)} used` : (limit.detail ?? "");

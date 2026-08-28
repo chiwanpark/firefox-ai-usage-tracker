@@ -25,9 +25,9 @@ const SIGNED_OUT_MARKERS = ["auth/authorize", "not associated with an account"];
 const USD_SCALE = 1e8;
 
 const WINDOWS = [
-  { id: "rolling", label: "5 hours", keys: ["rollingUsage", "rolling"], isActive: true },
-  { id: "weekly", label: "Weekly", keys: ["weeklyUsage", "weekly"], isActive: false },
-  { id: "monthly", label: "Monthly", keys: ["monthlyUsage", "monthly"], isActive: false },
+  { id: "rolling", label: "5 hours", keys: ["rollingUsage", "rolling"] },
+  { id: "weekly", label: "Weekly", keys: ["weeklyUsage", "weekly"] },
+  { id: "monthly", label: "Monthly", keys: ["monthlyUsage", "monthly"] },
 ];
 
 const PERCENT_FIELDS = ["usagePercent", "usedPercent", "percent"];
@@ -206,7 +206,6 @@ function toWindowLimits(text) {
       detail: null,
       resetsAt: resetInSec === null ? null : new Date(now + resetInSec * 1000).toISOString(),
       severity: severityFor(percent),
-      isActive: window.isActive,
     };
   }).filter(Boolean);
 }
@@ -236,7 +235,6 @@ function toSpendLimits(billing) {
       detail: limit ? `${used} of ${formatMoney(limit)}` : used,
       resetsAt: null,
       severity: percent === null ? "normal" : severityFor(percent),
-      isActive: false,
     },
   ];
 }
@@ -295,7 +293,6 @@ function toAccount(workspace, windows, billing) {
         detail: balance.text,
         resetsAt: null,
         severity: "normal",
-        isActive: false,
       },
     ],
     spend: null,

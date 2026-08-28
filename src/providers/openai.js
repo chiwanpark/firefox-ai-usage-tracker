@@ -140,7 +140,6 @@ function toLimit({ id, labelKey, value, fallback, prefix }) {
     detail: null,
     resetsAt: toResetsAt(value),
     severity: value.severity ?? severityFor(percent),
-    isActive: false,
   };
 }
 
@@ -215,7 +214,6 @@ function collectSpendLimits(spendControl) {
         detail: used && limit ? `${used} of ${limit} credits` : used && `${used} credits`,
         resetsAt: toResetsAt(value),
         severity: reached ? "critical" : severityFor(percent),
-        isActive: false,
       };
     })
     .filter(Boolean);

@@ -75,7 +75,6 @@ function fromLimits(limits) {
       percent: clampPercent(limit.percent),
       resetsAt: limit.resets_at ?? null,
       severity: limit.severity ?? "normal",
-      isActive: Boolean(limit.is_active),
     }));
 }
 
@@ -89,7 +88,6 @@ function fromLegacyWindows(payload) {
       percent: clampPercent(value.utilization),
       resetsAt: value.resets_at ?? null,
       severity: "normal",
-      isActive: false,
     }));
 }
 
