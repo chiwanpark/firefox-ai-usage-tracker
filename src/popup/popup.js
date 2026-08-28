@@ -124,9 +124,18 @@ function renderProvider(entry) {
   const stale = node.querySelector(".stale");
   const action = node.querySelector(".action");
   const skeleton = node.querySelector(".skeleton");
+  const icon = node.querySelector(".provider-icon");
+  const symbolId = `provider-icon-${provider.id}`;
   const isLoading = provider.state === "loading";
 
   node.querySelector("h2").textContent = provider.name;
+
+  if (document.getElementById(symbolId)) {
+    icon.querySelector("use").setAttribute("href", `#${symbolId}`);
+  } else {
+    icon.remove();
+  }
+
   skeleton.hidden = !isLoading;
   accounts.hidden = provider.state !== "ok";
   message.hidden = provider.state === "ok" || isLoading;

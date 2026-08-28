@@ -14,13 +14,13 @@ const API_BASE = "https://claude.ai/api";
 const SIGNED_OUT = "Sign in to claude.ai first.";
 
 const LIMIT_LABELS = {
-  session: "Session",
+  session: "5 hours",
   weekly_all: "Weekly",
   weekly_scoped: "Weekly",
 };
 
 const LEGACY_WINDOW_LABELS = {
-  five_hour: "Session",
+  five_hour: "5 hours",
   seven_day: "Weekly",
   seven_day_opus: "Weekly (Opus)",
   seven_day_sonnet: "Weekly (Sonnet)",

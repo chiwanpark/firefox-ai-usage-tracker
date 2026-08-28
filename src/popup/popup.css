@@ -35,8 +35,9 @@ h1 {
 }
 
 h2 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 13px;
+  font-weight: 700;
 }
 
 #refresh {
@@ -53,15 +54,34 @@ h2 {
 }
 
 .provider + .provider {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  margin-top: 16px;
+}
+
+.sprite {
+  display: none;
+}
+
+.provider-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.provider-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.provider-body {
+  padding-left: 10px;
+  border-left: 2px solid color-mix(in srgb, currentColor 15%, transparent);
 }
 
 .account + .account {
   margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
 }
 
 .account-head {
@@ -76,14 +96,22 @@ h2 {
 }
 
 .account-name {
+  font-size: 12px;
   font-weight: 600;
 }
 
 .account-type {
-  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  opacity: 0.6;
+  opacity: 0.7;
+}
+
+.account-type:empty {
+  display: none;
 }
 
 .limits {
@@ -104,15 +132,13 @@ h2 {
 
 .limit-label {
   overflow: hidden;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.limit.active .limit-label {
-  font-weight: 600;
-}
-
 .limit-value {
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
