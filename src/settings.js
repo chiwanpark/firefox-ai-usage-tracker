@@ -24,6 +24,8 @@ export async function saveGeneralSettings(values) {
 export const PROVIDER_DEFAULTS = {
   enabled: {},
   accounts: {},
+  providerOrder: [],
+  accountOrder: {},
 };
 
 export async function getProviderSettings() {
@@ -32,16 +34,40 @@ export async function getProviderSettings() {
   return {
     enabled: { ...PROVIDER_DEFAULTS.enabled, ...(stored.providers?.enabled ?? {}) },
     accounts: { ...PROVIDER_DEFAULTS.accounts, ...(stored.providers?.accounts ?? {}) },
+    providerOrder: [...(stored.providers?.providerOrder ?? PROVIDER_DEFAULTS.providerOrder)],
+    accountOrder: { ...PROVIDER_DEFAULTS.accountOrder, ...(stored.providers?.accountOrder ?? {}) },
   };
 }
 
 export async function saveProviderSettings(values) {
+  const current = await getProviderSettings();
+  const next = { ...current, ...values };
+
   await browser.storage.local.set({
     providers: {
-      enabled: { ...values.enabled },
-      accounts: { ...values.accounts },
+      enabled: { ...next.enabled },
+      accounts: { ...next.accounts },
+      providerOrder: [...next.providerOrder],
+      accountOrder: { ...next.accountOrder },
     },
   });
+}
+
+function sortByOrder(items, order, getId) {
+  const ranks = new Map(order.map((id, index) => [id, index]));
+
+  return items
+    .map((item, index) => ({ item, rank: ranks.get(getId(item)) ?? order.length + index }))
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ item }) => item);
+}
+
+export function sortProviders(settings, providers) {
+  return sortByOrder(providers, settings.providerOrder ?? [], (provider) => provider.id);
+}
+
+export function sortAccounts(settings, providerId, accounts) {
+  return sortByOrder(accounts, settings.accountOrder?.[providerId] ?? [], (account) => account.id);
 }
 
 export function isProviderEnabled(settings, id) {

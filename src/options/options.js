@@ -13,6 +13,8 @@ import {
   saveCopilotSettings,
   saveGeneralSettings,
   saveProviderSettings,
+  sortAccounts,
+  sortProviders,
 } from "../settings.js";
 
 const form = document.querySelector("#copilot-form");
@@ -71,6 +73,105 @@ async function saveProviders() {
   showStatus(providerStatus, "Saved.");
 }
 
+async function saveOrder() {
+  const stored = await getProviderSettings();
+  const groups = [...providerList.querySelectorAll(".provider-group")];
+  const accountOrder = { ...stored.accountOrder };
+
+  for (const group of groups) {
+    const ids = [...group.querySelectorAll(".account-row")].map((row) => row.dataset.account);
+
+    if (ids.length > 0) {
+      accountOrder[group.dataset.provider] = ids;
+    }
+  }
+
+  await saveProviderSettings({
+    providerOrder: groups.map((group) => group.dataset.provider),
+    accountOrder,
+  });
+  showStatus(providerStatus, "Order saved.");
+}
+
+function rowsIn(container) {
+  return [...container.querySelectorAll(":scope > .sortable-row")];
+}
+
+function moveControls(row) {
+  return row.querySelector(":scope > .row-main > .move");
+}
+
+function syncMoveButtons(container) {
+  const rows = rowsIn(container);
+
+  rows.forEach((row, index) => {
+    const move = moveControls(row);
+
+    move.querySelector(".move-up").disabled = index === 0;
+    move.querySelector(".move-down").disabled = index === rows.length - 1;
+  });
+}
+
+function moveRow(row, container, offset) {
+  const rows = rowsIn(container);
+  const target = rows[rows.indexOf(row) + offset];
+
+  if (!target) {
+    return;
+  }
+
+  if (offset < 0) {
+    target.before(row);
+  } else {
+    target.after(row);
+  }
+
+  syncMoveButtons(container);
+  saveOrder();
+}
+
+function createMoveButton(label, title, className) {
+  const button = document.createElement("button");
+
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute("aria-label", title);
+
+  return button;
+}
+
+function createMoveControls(row, container) {
+  const move = document.createElement("span");
+  const up = createMoveButton("↑", "Move up", "move-up");
+  const down = createMoveButton("↓", "Move down", "move-down");
+
+  move.className = "move";
+  move.append(up, down);
+
+  up.addEventListener("click", () => {
+    moveRow(row, container, -1);
+    (up.disabled ? down : up).focus();
+  });
+
+  down.addEventListener("click", () => {
+    moveRow(row, container, 1);
+    (down.disabled ? up : down).focus();
+  });
+
+  return move;
+}
+
+function createRowMain(row, container, toggle) {
+  const main = document.createElement("div");
+
+  main.className = "row-main";
+  main.append(toggle, createMoveControls(row, container));
+
+  return main;
+}
+
 function createToggle({ providerId, accountId, label, checked }) {
   const element = document.createElement("label");
   const input = document.createElement("input");
@@ -97,12 +198,34 @@ function knownAccounts(cache, providerId) {
   return Array.isArray(provider?.accounts) ? provider.accounts : [];
 }
 
+function renderAccountRow(provider, account, settings, container) {
+  const row = document.createElement("div");
+
+  row.className = "account-row sortable-row";
+  row.dataset.account = account.id;
+  row.append(
+    createRowMain(
+      row,
+      container,
+      createToggle({
+        providerId: provider.id,
+        accountId: account.id,
+        label: account.name ?? account.id,
+        checked: isAccountEnabled(settings, provider.id, account.id),
+      }),
+    ),
+  );
+
+  return row;
+}
+
 function renderProviderGroup(provider, settings, cache) {
   const group = document.createElement("div");
   const accounts = document.createElement("div");
-  const known = knownAccounts(cache, provider.id);
+  const known = sortAccounts(settings, provider.id, knownAccounts(cache, provider.id));
 
-  group.className = "provider-group";
+  group.className = "provider-group sortable-row";
+  group.dataset.provider = provider.id;
   accounts.className = "accounts";
 
   if (known.length === 0) {
@@ -113,25 +236,23 @@ function renderProviderGroup(provider, settings, cache) {
     accounts.append(hint);
   } else {
     accounts.append(
-      ...known.map((account) =>
-        createToggle({
-          providerId: provider.id,
-          accountId: account.id,
-          label: account.name ?? account.id,
-          checked: isAccountEnabled(settings, provider.id, account.id),
-        }),
-      ),
+      ...known.map((account) => renderAccountRow(provider, account, settings, accounts)),
     );
   }
 
   group.append(
-    createToggle({
-      providerId: provider.id,
-      label: provider.name,
-      checked: isProviderEnabled(settings, provider.id),
-    }),
+    createRowMain(
+      group,
+      providerList,
+      createToggle({
+        providerId: provider.id,
+        label: provider.name,
+        checked: isProviderEnabled(settings, provider.id),
+      }),
+    ),
     accounts,
   );
+  syncMoveButtons(accounts);
 
   return group;
 }
@@ -140,9 +261,12 @@ async function fillProviders() {
   const [settings, cache] = await Promise.all([getProviderSettings(), readCache()]);
 
   providerList.replaceChildren(
-    ...PROVIDERS.map((provider) => renderProviderGroup(provider, settings, cache)),
+    ...sortProviders(settings, PROVIDERS).map((provider) =>
+      renderProviderGroup(provider, settings, cache),
+    ),
   );
 
+  syncMoveButtons(providerList);
   syncAccountToggles();
   syncCopilotSection();
 }

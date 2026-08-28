@@ -5,6 +5,8 @@ import {
   getProviderSettings,
   isAccountEnabled,
   isProviderEnabled,
+  sortAccounts,
+  sortProviders,
 } from "./settings.js";
 
 const ALARM_NAME = "refresh-usage";
@@ -21,7 +23,10 @@ function placeholder({ id, name }) {
 }
 
 function enabledProviders(settings) {
-  return PROVIDERS.filter((descriptor) => isProviderEnabled(settings, descriptor.id));
+  return sortProviders(
+    settings,
+    PROVIDERS.filter((descriptor) => isProviderEnabled(settings, descriptor.id)),
+  );
 }
 
 function visibleEntry(entry, settings) {
@@ -31,13 +36,11 @@ function visibleEntry(entry, settings) {
     return entry;
   }
 
-  const accounts = provider.accounts.filter((account) =>
-    isAccountEnabled(settings, provider.id, account.id),
+  const accounts = sortAccounts(
+    settings,
+    provider.id,
+    provider.accounts.filter((account) => isAccountEnabled(settings, provider.id, account.id)),
   );
-
-  if (accounts.length === provider.accounts.length) {
-    return entry;
-  }
 
   if (accounts.length === 0) {
     return {
