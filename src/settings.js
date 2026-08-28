@@ -21,6 +21,41 @@ export async function saveGeneralSettings(values) {
   await browser.storage.local.set({ general: { ...GENERAL_DEFAULTS, ...values } });
 }
 
+export const PROVIDER_DEFAULTS = {
+  enabled: {},
+  accounts: {},
+};
+
+export async function getProviderSettings() {
+  const stored = await browser.storage.local.get("providers");
+
+  return {
+    enabled: { ...PROVIDER_DEFAULTS.enabled, ...(stored.providers?.enabled ?? {}) },
+    accounts: { ...PROVIDER_DEFAULTS.accounts, ...(stored.providers?.accounts ?? {}) },
+  };
+}
+
+export async function saveProviderSettings(values) {
+  await browser.storage.local.set({
+    providers: {
+      enabled: { ...values.enabled },
+      accounts: { ...values.accounts },
+    },
+  });
+}
+
+export function isProviderEnabled(settings, id) {
+  return settings.enabled?.[id] !== false;
+}
+
+export function accountKey(providerId, accountId) {
+  return `${providerId}:${accountId}`;
+}
+
+export function isAccountEnabled(settings, providerId, accountId) {
+  return settings.accounts?.[accountKey(providerId, accountId)] !== false;
+}
+
 export const COPILOT_DEFAULTS = {
   token: "",
   username: "",

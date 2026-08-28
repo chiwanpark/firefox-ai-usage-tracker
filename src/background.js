@@ -1,6 +1,11 @@
 import { mergeEntry, readCache, writeCache } from "./cache.js";
 import { PROVIDERS } from "./providers/index.js";
-import { getGeneralSettings } from "./settings.js";
+import {
+  getGeneralSettings,
+  getProviderSettings,
+  isAccountEnabled,
+  isProviderEnabled,
+} from "./settings.js";
 
 const ALARM_NAME = "refresh-usage";
 
@@ -15,10 +20,48 @@ function placeholder({ id, name }) {
   return { provider: { id, name, state: "loading" }, fetchedAt: null, error: null };
 }
 
-async function snapshot() {
-  const cache = await readCache();
+function enabledProviders(settings) {
+  return PROVIDERS.filter((descriptor) => isProviderEnabled(settings, descriptor.id));
+}
 
-  return { entries: PROVIDERS.map((descriptor) => cache[descriptor.id] ?? placeholder(descriptor)) };
+function visibleEntry(entry, settings) {
+  const { provider } = entry;
+
+  if (provider.state !== "ok" || !Array.isArray(provider.accounts)) {
+    return entry;
+  }
+
+  const accounts = provider.accounts.filter((account) =>
+    isAccountEnabled(settings, provider.id, account.id),
+  );
+
+  if (accounts.length === provider.accounts.length) {
+    return entry;
+  }
+
+  if (accounts.length === 0) {
+    return {
+      ...entry,
+      provider: {
+        ...provider,
+        state: "empty",
+        message: "All organizations are hidden.",
+        accounts: [],
+      },
+    };
+  }
+
+  return { ...entry, provider: { ...provider, accounts } };
+}
+
+async function snapshot() {
+  const [cache, settings] = await Promise.all([readCache(), getProviderSettings()]);
+
+  return {
+    entries: enabledProviders(settings).map((descriptor) =>
+      visibleEntry(cache[descriptor.id] ?? placeholder(descriptor), settings),
+    ),
+  };
 }
 
 function queueWrite(id, provider) {
@@ -39,7 +82,7 @@ function queueWrite(id, provider) {
   return result;
 }
 
-async function refreshProvider(descriptor) {
+async function refreshProvider(descriptor, settings) {
   let provider;
 
   try {
@@ -55,16 +98,22 @@ async function refreshProvider(descriptor) {
 
   const entry = await queueWrite(descriptor.id, provider);
 
-  broadcast({ type: "usageUpdated", entry });
+  broadcast({ type: "usageUpdated", entry: visibleEntry(entry, settings) });
 
   return entry;
 }
 
 function refreshAll() {
-  refreshing ??= Promise.all(PROVIDERS.map(refreshProvider)).finally(() => {
-    refreshing = null;
-    broadcast({ type: "refreshDone" });
-  });
+  refreshing ??= getProviderSettings()
+    .then((settings) =>
+      Promise.all(
+        enabledProviders(settings).map((descriptor) => refreshProvider(descriptor, settings)),
+      ),
+    )
+    .finally(() => {
+      refreshing = null;
+      broadcast({ type: "refreshDone" });
+    });
 
   return refreshing;
 }
@@ -93,8 +142,17 @@ async function applyAlarm() {
 }
 
 browser.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.general) {
+  if (area !== "local") {
+    return;
+  }
+
+  if (changes.general) {
     applyAlarm();
+  }
+
+  if (changes.providers) {
+    broadcast({ type: "providersChanged" });
+    refreshAll();
   }
 });
 

@@ -6,6 +6,7 @@ const refreshButton = document.querySelector("#refresh");
 const providerTemplate = document.querySelector("#provider-template");
 const accountTemplate = document.querySelector("#account-template");
 const limitTemplate = document.querySelector("#limit-template");
+const emptyTemplate = document.querySelector("#empty-template");
 
 const REFRESH_TIMEOUT_MS = 20000;
 
@@ -174,8 +175,18 @@ function renderProvider(entry) {
   return node;
 }
 
+function renderEmpty() {
+  const node = emptyTemplate.content.cloneNode(true);
+
+  node.querySelector(".action").addEventListener("click", () => browser.runtime.openOptionsPage());
+
+  return node;
+}
+
 function renderAll() {
-  providersElement.replaceChildren(...entries.map(renderProvider));
+  providersElement.replaceChildren(
+    ...(entries.length === 0 ? [renderEmpty()] : entries.map(renderProvider)),
+  );
   updateStatus();
 }
 
@@ -216,6 +227,10 @@ browser.runtime.onMessage.addListener((message) => {
 
   if (message?.type === "refreshDone") {
     endRefresh();
+  }
+
+  if (message?.type === "providersChanged") {
+    init();
   }
 });
 

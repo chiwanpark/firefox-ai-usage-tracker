@@ -55,6 +55,43 @@ select {
   font: inherit;
 }
 
+input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  accent-color: #2b5cd9;
+}
+
+.toggles {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+
+.provider-group > .toggle {
+  font-weight: 600;
+}
+
+.provider-group .accounts {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0 21px;
+}
+
+.provider-group .accounts.disabled {
+  opacity: 0.5;
+}
+
+.provider-group .accounts .hint {
+  margin: 0;
+}
+
 .row {
   display: flex;
   align-items: center;
@@ -72,7 +109,8 @@ select {
   margin-top: 10px;
 }
 
-#refresh-status {
+#refresh-status,
+#provider-status {
   opacity: 0.75;
   white-space: nowrap;
 }

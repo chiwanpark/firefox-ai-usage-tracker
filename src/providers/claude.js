@@ -1,3 +1,4 @@
+import { getProviderSettings, isAccountEnabled } from "../settings.js";
 import {
   UsageError,
   clampPercent,
@@ -172,12 +173,20 @@ export async function fetchClaudeUsage() {
   }
 
   try {
+    const settings = await getProviderSettings();
     const organizations = await fetchOrganizations();
+    const accounts = await Promise.all(
+      organizations.map((organization) =>
+        isAccountEnabled(settings, provider.id, organization.id)
+          ? fetchOrganizationUsage(organization)
+          : { ...organization, state: "disabled", message: "Hidden in settings." },
+      ),
+    );
 
     return {
       ...provider,
       state: "ok",
-      accounts: await Promise.all(organizations.map(fetchOrganizationUsage)),
+      accounts,
       fetchedAt: Date.now(),
     };
   } catch (error) {
