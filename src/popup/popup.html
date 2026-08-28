@@ -17,55 +17,124 @@
         <symbol id="provider-icon-copilot" viewBox="0 0 24 24">
           <path d="M23.922 16.997C23.061 18.492 18.063 22.02 12 22.02 5.937 22.02.939 18.492.078 16.997A.641.641 0 0 1 0 16.741v-2.869a.883.883 0 0 1 .053-.22c.372-.935 1.347-2.292 2.605-2.656.167-.429.414-1.055.644-1.517a10.098 10.098 0 0 1-.052-1.086c0-1.331.282-2.499 1.132-3.368.397-.406.89-.717 1.474-.952C7.255 2.937 9.248 1.98 11.978 1.98c2.731 0 4.767.957 6.166 2.093.584.235 1.077.546 1.474.952.85.869 1.132 2.037 1.132 3.368 0 .368-.014.733-.052 1.086.23.462.477 1.088.644 1.517 1.258.364 2.233 1.721 2.605 2.656a.841.841 0 0 1 .053.22v2.869a.641.641 0 0 1-.078.256Zm-11.75-5.992h-.344a4.359 4.359 0 0 1-.355.508c-.77.947-1.918 1.492-3.508 1.492-1.725 0-2.989-.359-3.782-1.259a2.137 2.137 0 0 1-.085-.104L4 11.746v6.585c1.435.779 4.514 2.179 8 2.179 3.486 0 6.565-1.4 8-2.179v-6.585l-.098-.104s-.033.045-.085.104c-.793.9-2.057 1.259-3.782 1.259-1.59 0-2.738-.545-3.508-1.492a4.359 4.359 0 0 1-.355-.508Zm2.328 3.25c.549 0 1 .451 1 1v2c0 .549-.451 1-1 1-.549 0-1-.451-1-1v-2c0-.549.451-1 1-1Zm-5 0c.549 0 1 .451 1 1v2c0 .549-.451 1-1 1-.549 0-1-.451-1-1v-2c0-.549.451-1 1-1Zm3.313-6.185c.136 1.057.403 1.913.878 2.497.442.544 1.134.938 2.344.938 1.573 0 2.292-.337 2.657-.751.384-.435.558-1.15.558-2.361 0-1.14-.243-1.847-.705-2.319-.477-.488-1.319-.862-2.824-1.025-1.487-.161-2.192.138-2.533.529-.269.307-.437.808-.438 1.578v.021c0 .265.021.562.063.893Zm-1.626 0c.042-.331.063-.628.063-.894v-.02c-.001-.77-.169-1.271-.438-1.578-.341-.391-1.046-.69-2.533-.529-1.505.163-2.347.537-2.824 1.025-.462.472-.705 1.179-.705 2.319 0 1.211.175 1.926.558 2.361.365.414 1.084.751 2.657.751 1.21 0 1.902-.394 2.344-.938.475-.584.742-1.44.878-2.497Z" />
         </symbol>
+        <symbol id="tab-icon-overview" viewBox="0 0 24 24">
+          <path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" />
+        </symbol>
+        <symbol id="icon-refresh" viewBox="0 0 24 24">
+          <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" />
+        </symbol>
       </defs>
     </svg>
-    <header>
-      <h1>AI Usage Tracker</h1>
-      <span id="status"></span>
-      <button id="refresh" type="button" title="Refresh">↻</button>
-    </header>
-    <main id="providers"></main>
-    <template id="provider-template">
-      <section class="provider">
-        <div class="provider-head">
-          <svg class="provider-icon" aria-hidden="true" focusable="false"><use /></svg>
-          <h2></h2>
-        </div>
-        <div class="provider-body">
-          <div class="accounts"></div>
-          <p class="message"></p>
-          <p class="stale"></p>
-          <button class="action" type="button"></button>
-          <div class="skeleton">
-            <div class="skeleton-row">
-              <div class="skeleton-line"></div>
-              <div class="skeleton-bar"></div>
-            </div>
-            <div class="skeleton-row">
-              <div class="skeleton-line short"></div>
-              <div class="skeleton-bar"></div>
-            </div>
+
+    <nav id="tabs" class="tabs" role="tablist" aria-label="Panels"></nav>
+    <main id="panel" class="panel" role="tabpanel" tabindex="0"></main>
+    <footer class="footer">
+      <button id="settings" class="link" type="button">Settings…</button>
+      <span id="status" role="status"></span>
+    </footer>
+
+    <template id="tab-template">
+      <button class="tab" type="button" role="tab">
+        <svg class="tab-icon" aria-hidden="true" focusable="false"><use /></svg>
+        <span class="tab-label"></span>
+        <span class="tab-dot"></span>
+      </button>
+    </template>
+
+    <template id="overview-template">
+      <section class="panel-body overview-panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h1>Overview</h1>
+            <p class="panel-sub"></p>
           </div>
+          <button class="refresh" type="button" title="Refresh" aria-label="Refresh">
+            <svg aria-hidden="true" focusable="false"><use href="#icon-refresh" /></svg>
+          </button>
+        </div>
+        <div class="cards"></div>
+      </section>
+    </template>
+
+    <template id="card-template">
+      <article class="card">
+        <div class="card-head">
+          <span class="tile">
+            <svg class="tile-icon" aria-hidden="true" focusable="false"><use /></svg>
+          </span>
+          <div class="card-title">
+            <span class="card-name"></span>
+            <span class="card-sub"></span>
+          </div>
+          <span class="card-chip"></span>
+        </div>
+        <div class="card-limits"></div>
+        <p class="message"></p>
+        <button class="action" type="button"></button>
+        <div class="skeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-bar"></div>
+        </div>
+      </article>
+    </template>
+
+    <template id="mini-limit-template">
+      <div class="mini">
+        <div class="mini-head">
+          <span class="mini-label"></span>
+          <span class="mini-value"></span>
+          <span class="mini-reset"></span>
+        </div>
+        <div class="bar bar-sm"><div class="bar-fill"></div></div>
+      </div>
+    </template>
+
+    <template id="provider-template">
+      <section class="panel-body provider-panel">
+        <div class="panel-head">
+          <span class="tile">
+            <svg class="tile-icon" aria-hidden="true" focusable="false"><use /></svg>
+          </span>
+          <div class="panel-title">
+            <h1></h1>
+            <p class="panel-sub"></p>
+          </div>
+          <button class="refresh" type="button" title="Refresh" aria-label="Refresh">
+            <svg aria-hidden="true" focusable="false"><use href="#icon-refresh" /></svg>
+          </button>
+        </div>
+        <p class="panel-meta"></p>
+        <p class="stale"></p>
+        <div class="accounts"></div>
+        <p class="message"></p>
+        <button class="action" type="button"></button>
+        <div class="skeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-bar"></div>
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-bar"></div>
         </div>
       </section>
     </template>
-    <template id="empty-template">
-      <section class="provider">
-        <p class="message">No providers are enabled.</p>
-        <button class="action" type="button">Open settings</button>
-      </section>
-    </template>
+
     <template id="account-template">
-      <article class="account">
+      <section class="account">
         <div class="account-head">
           <span class="account-name"></span>
           <span class="account-type"></span>
         </div>
         <ul class="limits"></ul>
-        <p class="spend"></p>
+        <div class="spend">
+          <div class="spend-head">
+            <span class="spend-label"></span>
+            <span class="spend-value"></span>
+          </div>
+          <div class="bar"><div class="bar-fill"></div></div>
+        </div>
         <p class="message"></p>
-      </article>
+      </section>
     </template>
+
     <template id="limit-template">
       <li class="limit">
         <div class="limit-head">
@@ -74,11 +143,19 @@
         </div>
         <div class="bar"><div class="bar-fill"></div></div>
         <div class="limit-foot">
-          <span class="limit-detail"></span>
           <span class="limit-reset"></span>
+          <span class="limit-detail"></span>
         </div>
       </li>
     </template>
+
+    <template id="empty-template">
+      <div class="empty">
+        <p class="message">No providers are enabled.</p>
+        <button class="action" type="button">Open settings</button>
+      </div>
+    </template>
+
     <script src="popup.js" type="module"></script>
   </body>
 </html>
