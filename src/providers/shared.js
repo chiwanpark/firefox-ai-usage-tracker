@@ -14,7 +14,7 @@ export function requestHostPermission(origin) {
   return browser.permissions.request({ origins: [origin] });
 }
 
-export async function fetchJson(
+async function fetchOk(
   url,
   {
     headers = {},
@@ -27,10 +27,7 @@ export async function fetchJson(
   let response;
 
   try {
-    response = await fetch(url, {
-      credentials,
-      headers: { Accept: "application/json", ...headers },
-    });
+    response = await fetch(url, { credentials, headers });
   } catch {
     throw new UsageError("error", `Could not reach ${new URL(url).host}.`);
   }
@@ -49,8 +46,27 @@ export async function fetchJson(
     throw new UsageError("error", `${new URL(url).host} returned ${response.status}.`);
   }
 
+  return response;
+}
+
+export async function fetchJson(url, options = {}) {
+  const response = await fetchOk(url, {
+    ...options,
+    headers: { Accept: "application/json", ...options.headers },
+  });
+
   try {
     return await response.json();
+  } catch {
+    throw new UsageError("error", `Unexpected response from ${new URL(url).host}.`);
+  }
+}
+
+export async function fetchText(url, options = {}) {
+  const response = await fetchOk(url, options);
+
+  try {
+    return await response.text();
   } catch {
     throw new UsageError("error", `Unexpected response from ${new URL(url).host}.`);
   }

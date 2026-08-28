@@ -24,6 +24,10 @@
   --accent: light-dark(#7040c9, #b18aff);
 }
 
+[data-provider="opencode"] {
+  --accent: light-dark(#0062cc, #4da3ff);
+}
+
 * {
   box-sizing: border-box;
 }

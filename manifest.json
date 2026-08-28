@@ -19,7 +19,8 @@
   "host_permissions": [
     "https://claude.ai/*",
     "https://chatgpt.com/*",
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://opencode.ai/*"
   ],
   "options_ui": {
     "page": "src/options/options.html",
