@@ -40,7 +40,7 @@
       <span id="provider-status" role="status"></span>
     </div>
 
-    <section id="copilot-section">
+    <section data-provider="copilot">
       <h2>GitHub Copilot</h2>
       <p class="hint">
         Needs a fine-grained personal access token with the <strong>Plan</strong> user permission
@@ -63,6 +63,30 @@
           <button type="submit">Save</button>
           <button type="button" id="grant">Grant API access</button>
           <span id="status" role="status"></span>
+        </div>
+      </form>
+    </section>
+
+    <section data-provider="openrouter">
+      <h2>OpenRouter</h2>
+      <p class="hint">
+        Needs an API key from your OpenRouter account. The credit balance is only reported for keys
+        that may read credits; key usage and limits always work.
+      </p>
+      <form id="openrouter-form">
+        <label for="openrouter-key">API key</label>
+        <input
+          id="openrouter-key"
+          name="apiKey"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+        />
+
+        <div class="actions">
+          <button type="submit">Save</button>
+          <button type="button" id="openrouter-grant">Grant API access</button>
+          <span id="openrouter-status" role="status"></span>
         </div>
       </form>
     </section>

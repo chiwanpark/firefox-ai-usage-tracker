@@ -76,6 +76,14 @@ export function clampPercent(value) {
   return Math.min(Math.max(value, 0), 100);
 }
 
+export function formatUsd(value) {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
+  } catch {
+    return `${value.toFixed(2)} USD`;
+  }
+}
+
 export function humanize(key) {
   return key.replaceAll("_", " ").replace(/^./, (char) => char.toUpperCase());
 }

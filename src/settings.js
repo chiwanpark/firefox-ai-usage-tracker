@@ -107,3 +107,17 @@ export async function getCopilotSettings() {
 export async function saveCopilotSettings(values) {
   await browser.storage.local.set({ copilot: { ...COPILOT_DEFAULTS, ...values } });
 }
+
+export const OPENROUTER_DEFAULTS = {
+  apiKey: "",
+};
+
+export async function getOpenRouterSettings() {
+  const stored = await browser.storage.local.get("openrouter");
+
+  return { ...OPENROUTER_DEFAULTS, ...(stored.openrouter ?? {}) };
+}
+
+export async function saveOpenRouterSettings(values) {
+  await browser.storage.local.set({ openrouter: { ...OPENROUTER_DEFAULTS, ...values } });
+}

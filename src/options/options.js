@@ -1,6 +1,7 @@
 import { readCache } from "../cache.js";
 import { COPILOT_HOST_PERMISSION, COPILOT_PLANS } from "../providers/copilot.js";
 import { PROVIDERS } from "../providers/index.js";
+import { OPENROUTER_HOST_PERMISSION } from "../providers/openrouter.js";
 import { hasHostPermission, requestHostPermission } from "../providers/shared.js";
 import {
   REFRESH_OPTIONS,
@@ -8,19 +9,22 @@ import {
   accountKey,
   getCopilotSettings,
   getGeneralSettings,
+  getOpenRouterSettings,
   getProviderSettings,
   isAccountEnabled,
   isProviderEnabled,
   saveCopilotSettings,
   saveGeneralSettings,
+  saveOpenRouterSettings,
   saveProviderSettings,
   sortAccounts,
   sortProviders,
 } from "../settings.js";
 
 const form = document.querySelector("#copilot-form");
+const openRouterForm = document.querySelector("#openrouter-form");
 const providerList = document.querySelector("#providers");
-const copilotSection = document.querySelector("#copilot-section");
+const providerSections = document.querySelectorAll("section[data-provider]");
 const providerStatus = document.querySelector("#provider-status");
 const refreshSelect = document.querySelector("#refresh-minutes");
 const appearanceSelect = document.querySelector("#tab-appearance");
@@ -28,7 +32,9 @@ const planSelect = document.querySelector("#plan");
 const allowanceInput = document.querySelector("#allowance");
 const allowanceLabel = document.querySelector("#allowance-label");
 const grantButton = document.querySelector("#grant");
+const openRouterGrantButton = document.querySelector("#openrouter-grant");
 const status = document.querySelector("#status");
+const openRouterStatus = document.querySelector("#openrouter-status");
 const refreshStatus = document.querySelector("#refresh-status");
 const appearanceStatus = document.querySelector("#appearance-status");
 
@@ -39,10 +45,13 @@ function showStatus(element, text) {
   }, 2500);
 }
 
-function syncCopilotSection() {
-  const toggle = providerList.querySelector('input[data-provider="copilot"]:not([data-account])');
+function syncProviderSections() {
+  for (const section of providerSections) {
+    const selector = `input[data-provider="${section.dataset.provider}"]:not([data-account])`;
+    const toggle = providerList.querySelector(selector);
 
-  copilotSection.hidden = !(toggle?.checked ?? true);
+    section.hidden = !(toggle?.checked ?? true);
+  }
 }
 
 function syncAccountToggles() {
@@ -72,7 +81,7 @@ async function saveProviders() {
 
   await saveProviderSettings({ enabled, accounts });
   syncAccountToggles();
-  syncCopilotSection();
+  syncProviderSections();
   showStatus(providerStatus, "Saved.");
 }
 
@@ -271,7 +280,7 @@ async function fillProviders() {
 
   syncMoveButtons(providerList);
   syncAccountToggles();
-  syncCopilotSection();
+  syncProviderSections();
 }
 
 function syncAllowanceVisibility() {
@@ -281,10 +290,19 @@ function syncAllowanceVisibility() {
   allowanceLabel.hidden = !isCustom;
 }
 
-async function syncGrantButton() {
-  const granted = await hasHostPermission(COPILOT_HOST_PERMISSION);
+function bindGrantButton(button, origin, statusElement) {
+  async function sync() {
+    button.hidden = await hasHostPermission(origin);
+  }
 
-  grantButton.hidden = granted;
+  button.addEventListener("click", async () => {
+    if (await requestHostPermission(origin)) {
+      await sync();
+      showStatus(statusElement, "Access granted.");
+    }
+  });
+
+  return sync;
 }
 
 function fillSelect(select, options) {
@@ -332,15 +350,16 @@ async function load() {
 
   await fillProviders();
 
-  const settings = await getCopilotSettings();
+  const [copilot, openRouter] = await Promise.all([getCopilotSettings(), getOpenRouterSettings()]);
 
-  form.username.value = settings.username;
-  form.token.value = settings.token;
-  planSelect.value = settings.plan;
-  allowanceInput.value = settings.allowance;
+  form.username.value = copilot.username;
+  form.token.value = copilot.token;
+  planSelect.value = copilot.plan;
+  allowanceInput.value = copilot.allowance;
+  openRouterForm.apiKey.value = openRouter.apiKey;
 
   syncAllowanceVisibility();
-  await syncGrantButton();
+  await Promise.all([syncGrantButton(), syncOpenRouterGrantButton()]);
 }
 
 form.addEventListener("submit", async (event) => {
@@ -354,6 +373,14 @@ form.addEventListener("submit", async (event) => {
   });
 
   showStatus(status, "Saved.");
+});
+
+openRouterForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  await saveOpenRouterSettings({ apiKey: openRouterForm.apiKey.value.trim() });
+
+  showStatus(openRouterStatus, "Saved.");
 });
 
 planSelect.addEventListener("change", syncAllowanceVisibility);
@@ -374,12 +401,12 @@ browser.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-grantButton.addEventListener("click", async () => {
-  if (await requestHostPermission(COPILOT_HOST_PERMISSION)) {
-    await syncGrantButton();
-    showStatus(status, "Access granted.");
-  }
-});
+const syncGrantButton = bindGrantButton(grantButton, COPILOT_HOST_PERMISSION, status);
+const syncOpenRouterGrantButton = bindGrantButton(
+  openRouterGrantButton,
+  OPENROUTER_HOST_PERMISSION,
+  openRouterStatus,
+);
 
 fillRefreshOptions();
 fillAppearanceOptions();

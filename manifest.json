@@ -20,7 +20,8 @@
     "https://claude.ai/*",
     "https://chatgpt.com/*",
     "https://api.github.com/*",
-    "https://opencode.ai/*"
+    "https://opencode.ai/*",
+    "https://openrouter.ai/*"
   ],
   "options_ui": {
     "page": "src/options/options.html",

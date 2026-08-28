@@ -28,6 +28,10 @@
   --accent: light-dark(#0062cc, #4da3ff);
 }
 
+[data-provider="openrouter"] {
+  --accent: light-dark(#4f52d9, #9295ff);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -383,6 +387,11 @@ h1 {
 .mini-reset {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.mini-value:empty,
+.mini-reset:empty {
+  display: none;
 }
 
 .accounts {

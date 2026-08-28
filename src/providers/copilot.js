@@ -3,6 +3,7 @@ import {
   UsageError,
   clampPercent,
   fetchJson,
+  formatUsd,
   hasHostPermission,
   severityFor,
   toErrorState,
@@ -76,14 +77,6 @@ function formatQuantity(value) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 }
 
-function formatMoney(value) {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
-  } catch {
-    return `${value.toFixed(2)} USD`;
-  }
-}
-
 function nextResetAt() {
   const now = new Date();
 
@@ -100,7 +93,7 @@ function toOverage(items) {
     return null;
   }
 
-  return { label: "Overage", text: formatMoney(amount), percent: null, severity: "warning" };
+  return { label: "Overage", text: formatUsd(amount), percent: null, severity: "warning" };
 }
 
 function toLimits(report, items, allowance) {

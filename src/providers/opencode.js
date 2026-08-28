@@ -3,6 +3,7 @@ import {
   UsageError,
   clampPercent,
   fetchText,
+  formatUsd,
   hasHostPermission,
   humanize,
   severityFor,
@@ -210,20 +211,12 @@ function toWindowLimits(text) {
   }).filter(Boolean);
 }
 
-function formatMoney(value) {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
-  } catch {
-    return `${value.toFixed(2)} USD`;
-  }
-}
-
 function toSpendLimits(billing) {
   if (typeof billing?.monthlyUsage !== "number") {
     return [];
   }
 
-  const used = formatMoney(billing.monthlyUsage);
+  const used = formatUsd(billing.monthlyUsage);
   const limit = billing.monthlyLimit;
   const percent = limit ? clampPercent((billing.monthlyUsage / limit) * 100) : null;
 
@@ -232,7 +225,7 @@ function toSpendLimits(billing) {
       id: "monthly-spend",
       label: "Monthly spend",
       percent,
-      detail: limit ? `${used} of ${formatMoney(limit)}` : used,
+      detail: limit ? `${used} of ${formatUsd(limit)}` : used,
       resetsAt: null,
       severity: percent === null ? "normal" : severityFor(percent),
     },
@@ -246,7 +239,7 @@ function toBalance(billing) {
 
   return {
     label: "Zen balance",
-    text: formatMoney(billing.balance),
+    text: formatUsd(billing.balance),
     percent: null,
     severity: "normal",
   };
