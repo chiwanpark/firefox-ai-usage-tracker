@@ -1,4 +1,10 @@
 import {
+  collectStoreAccounts,
+  listStores,
+  storeAccountId,
+  storeRequestOptions,
+} from "./containers.js";
+import {
   UsageError,
   clampPercent,
   fetchJson,
@@ -11,7 +17,7 @@ import {
 export const OPENAI_HOST_PERMISSION = "https://chatgpt.com/*";
 
 const ORIGIN = "https://chatgpt.com";
-const SIGNED_OUT = "Sign in to chatgpt.com first.";
+const HOST = "chatgpt.com";
 
 const WINDOW_LABELS = {
   primary: "Session",
@@ -226,16 +232,52 @@ function planOf(payload, user) {
   return typeof plan === "string" ? plan.toLowerCase() : null;
 }
 
-async function fetchSession() {
-  const session = await fetchJson(`${ORIGIN}/api/auth/session`, {
-    signedOutMessage: SIGNED_OUT,
-  });
+function accountIdOf(payload, session) {
+  const candidates = [
+    payload?.account_id,
+    session?.account?.id,
+    payload?.user_id,
+    session?.user?.id,
+  ];
+
+  return candidates.find((value) => typeof value === "string" && value !== "") ?? "chatgpt";
+}
+
+function isSessionCookie(name) {
+  return name.startsWith("__Secure-next-auth.session-token");
+}
+
+async function fetchSession(request) {
+  const session = await fetchJson(`${ORIGIN}/api/auth/session`, request);
 
   if (!session?.accessToken) {
-    throw new UsageError("signed-out", SIGNED_OUT);
+    throw new UsageError("signed-out", request.signedOutMessage);
   }
 
   return session;
+}
+
+async function fetchStoreAccounts(store) {
+  const request = storeRequestOptions(store, HOST);
+  const session = await fetchSession(request);
+  const payload = await fetchJson(`${ORIGIN}/backend-api/wham/usage`, {
+    ...request,
+    headers: { ...request.headers, Authorization: `Bearer ${session.accessToken}` },
+  });
+
+  const limits = [...collectRateLimits(payload), ...collectSpendLimits(payload?.spend_control)];
+  const account = {
+    id: storeAccountId(store, accountIdOf(payload, session)),
+    name: payload?.email ?? session.user?.email ?? "ChatGPT",
+    type: planOf(payload, session.user),
+    container: store.name,
+  };
+
+  if (limits.length === 0) {
+    return [{ ...account, state: "empty", message: "No usage reported." }];
+  }
+
+  return [{ ...account, state: "ok", limits, spend: null }];
 }
 
 export async function fetchOpenAiUsage() {
@@ -254,31 +296,13 @@ export async function fetchOpenAiUsage() {
   }
 
   try {
-    const session = await fetchSession();
-    const payload = await fetchJson(`${ORIGIN}/backend-api/wham/usage`, {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-      signedOutMessage: SIGNED_OUT,
-    });
-
-    const limits = [...collectRateLimits(payload), ...collectSpendLimits(payload?.spend_control)];
-    const account = {
-      id: payload?.account_id ?? "chatgpt",
-      name: payload?.email ?? session.user?.email ?? "ChatGPT",
-      type: planOf(payload, session.user),
-    };
-
-    if (limits.length === 0) {
-      return {
-        ...provider,
-        state: "ok",
-        accounts: [{ ...account, state: "empty", message: "No usage reported." }],
-      };
-    }
+    const stores = await listStores(ORIGIN, isSessionCookie);
+    const accounts = await collectStoreAccounts(stores, fetchStoreAccounts, provider.name);
 
     return {
       ...provider,
       state: "ok",
-      accounts: [{ ...account, state: "ok", limits, spend: null }],
+      accounts,
       fetchedAt: Date.now(),
     };
   } catch (error) {

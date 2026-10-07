@@ -106,3 +106,7 @@ export function toErrorState(error) {
     message: error instanceof UsageError ? error.message : "Unexpected error.",
   };
 }
+
+export function accountLabel(account) {
+  return [account.name ?? account.id, account.container].filter(Boolean).join(" · ");
+}

@@ -1,5 +1,11 @@
 import { getProviderSettings, isAccountEnabled } from "../settings.js";
 import {
+  collectStoreAccounts,
+  listStores,
+  storeAccountId,
+  storeRequestOptions,
+} from "./containers.js";
+import {
   UsageError,
   clampPercent,
   fetchText,
@@ -13,7 +19,8 @@ import {
 export const OPENCODE_HOST_PERMISSION = "https://opencode.ai/*";
 
 const ORIGIN = "https://opencode.ai";
-const SIGNED_OUT = "Sign in to opencode.ai first.";
+const HOST = "opencode.ai";
+const SESSION_COOKIES = new Set(["auth", "__Host-auth", "__Host-console_session"]);
 
 const SERVER_FUNCTIONS = {
   workspaces: "def39973159c7f0483d8793a822b8dbb10d067e12c65455fcb4608459ba0234f",
@@ -101,15 +108,19 @@ function enclosingObject(text, pattern) {
   return null;
 }
 
-function guardSignedOut(text) {
+function isSessionCookie(name) {
+  return SESSION_COOKIES.has(name);
+}
+
+function guardSignedOut(text, request) {
   if (SIGNED_OUT_MARKERS.some((marker) => text.includes(marker))) {
-    throw new UsageError("signed-out", SIGNED_OUT);
+    throw new UsageError("signed-out", request.signedOutMessage);
   }
 
   return text;
 }
 
-async function fetchServer(name, args) {
+async function fetchServer(store, name, args) {
   const serverId = SERVER_FUNCTIONS[name];
   const url = new URL(`${ORIGIN}/_server`);
 
@@ -119,25 +130,28 @@ async function fetchServer(name, args) {
     url.searchParams.set("args", JSON.stringify(args));
   }
 
+  const request = storeRequestOptions(store, HOST);
   const text = await fetchText(url.toString(), {
-    signedOutMessage: SIGNED_OUT,
+    ...request,
     headers: {
+      ...request.headers,
       Accept: "text/javascript, application/json;q=0.9, */*;q=0.8",
       "X-Server-Id": serverId,
       "X-Server-Instance": `server-fn:${crypto.randomUUID()}`,
     },
   });
 
-  return guardSignedOut(text);
+  return guardSignedOut(text, request);
 }
 
-async function fetchPage(path) {
+async function fetchPage(store, path) {
+  const request = storeRequestOptions(store, HOST);
   const text = await fetchText(`${ORIGIN}${path}`, {
-    signedOutMessage: SIGNED_OUT,
-    headers: { Accept: "text/html,application/xhtml+xml" },
+    ...request,
+    headers: { ...request.headers, Accept: "text/html,application/xhtml+xml" },
   });
 
-  return guardSignedOut(text);
+  return guardSignedOut(text, request);
 }
 
 function parseWorkspaces(text) {
@@ -157,8 +171,8 @@ function parseWorkspaces(text) {
   return [...workspaces.values()];
 }
 
-async function fetchWorkspaces() {
-  const workspaces = parseWorkspaces(await fetchServer("workspaces"));
+async function fetchWorkspaces(store) {
+  const workspaces = parseWorkspaces(await fetchServer(store, "workspaces"));
 
   if (workspaces.length === 0) {
     throw new UsageError("signed-out", "No OpenCode workspace found.");
@@ -292,23 +306,41 @@ function toAccount(workspace, windows, billing) {
   };
 }
 
-async function fetchWorkspaceUsage(workspace) {
+async function fetchWorkspaceUsage(store, workspaceId, account) {
   try {
     const [subscription, billingText] = await Promise.all([
-      fetchServer("subscription", [workspace.id]),
-      fetchServer("billing", [workspace.id]),
+      fetchServer(store, "subscription", [workspaceId]),
+      fetchServer(store, "billing", [workspaceId]),
     ]);
     const billing = parseBilling(billingText);
     let windows = toWindowLimits(subscription);
 
     if (windows.length === 0 && billing?.hasSubscription) {
-      windows = toWindowLimits(await fetchPage(`/workspace/${workspace.id}/go`));
+      windows = toWindowLimits(await fetchPage(store, `/workspace/${workspaceId}/go`));
     }
 
-    return toAccount(workspace, windows, billing);
+    return toAccount(account, windows, billing);
   } catch (error) {
-    return { ...workspace, ...toErrorState(error) };
+    return { ...account, ...toErrorState(error) };
   }
+}
+
+async function fetchStoreAccounts(store, settings, providerId) {
+  const workspaces = await fetchWorkspaces(store);
+
+  return Promise.all(
+    workspaces.map((workspace) => {
+      const account = {
+        id: storeAccountId(store, workspace.id),
+        name: workspace.name,
+        container: store.name,
+      };
+
+      return isAccountEnabled(settings, providerId, account.id)
+        ? fetchWorkspaceUsage(store, workspace.id, account)
+        : { ...account, state: "disabled", message: "Hidden in settings." };
+    }),
+  );
 }
 
 export async function fetchOpenCodeUsage() {
@@ -327,14 +359,14 @@ export async function fetchOpenCodeUsage() {
   }
 
   try {
-    const settings = await getProviderSettings();
-    const workspaces = await fetchWorkspaces();
-    const accounts = await Promise.all(
-      workspaces.map((workspace) =>
-        isAccountEnabled(settings, provider.id, workspace.id)
-          ? fetchWorkspaceUsage(workspace)
-          : { ...workspace, state: "disabled", message: "Hidden in settings." },
-      ),
+    const [settings, stores] = await Promise.all([
+      getProviderSettings(),
+      listStores(ORIGIN, isSessionCookie),
+    ]);
+    const accounts = await collectStoreAccounts(
+      stores,
+      (store) => fetchStoreAccounts(store, settings, provider.id),
+      provider.name,
     );
 
     return {

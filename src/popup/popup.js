@@ -1,4 +1,4 @@
-import { requestHostPermission } from "../providers/shared.js";
+import { accountLabel, requestHostPermission } from "../providers/shared.js";
 import { getGeneralSettings } from "../settings.js";
 
 const tabsElement = document.querySelector("#tabs");
@@ -254,7 +254,7 @@ function renderAccount(account, showHead) {
   const isOk = account.state === "ok";
 
   head.hidden = !showHead;
-  node.querySelector(".account-name").textContent = account.name;
+  node.querySelector(".account-name").textContent = accountLabel(account);
   node.querySelector(".account-type").textContent = account.type ?? "";
 
   limits.hidden = !isOk;
@@ -306,7 +306,7 @@ function renderProviderPanel(entry) {
   applyRefreshButton(node.querySelector(".refresh"));
 
   meta.hidden = !single;
-  meta.textContent = single ? [single.name, single.type].filter(Boolean).join(" · ") : "";
+  meta.textContent = single ? [accountLabel(single), single.type].filter(Boolean).join(" · ") : "";
 
   stale.hidden = !entry.error;
   stale.textContent = entry.error ? `Last refresh failed: ${entry.error.message}` : "";
@@ -331,7 +331,9 @@ function cardSubtitle(provider, account) {
     return "";
   }
 
-  return account.name && account.name !== provider.name ? account.name : (account.type ?? "");
+  const name = account.name && account.name !== provider.name ? account.name : null;
+
+  return [name ?? account.type, account.container].filter(Boolean).join(" · ");
 }
 
 function cardChip(entry, account) {

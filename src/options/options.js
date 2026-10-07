@@ -2,7 +2,11 @@ import { readCache } from "../cache.js";
 import { COPILOT_HOST_PERMISSION, COPILOT_PLANS } from "../providers/copilot.js";
 import { PROVIDERS } from "../providers/index.js";
 import { OPENROUTER_HOST_PERMISSION } from "../providers/openrouter.js";
-import { hasHostPermission, requestHostPermission } from "../providers/shared.js";
+import {
+  accountLabel,
+  hasHostPermission,
+  requestHostPermission,
+} from "../providers/shared.js";
 import {
   REFRESH_OPTIONS,
   TAB_APPEARANCE_OPTIONS,
@@ -72,7 +76,7 @@ async function saveProviders() {
   const accounts = { ...stored.accounts };
 
   for (const input of providerList.querySelectorAll("input[data-provider]")) {
-    if (input.dataset.account) {
+    if (input.dataset.account !== undefined) {
       accounts[accountKey(input.dataset.provider, input.dataset.account)] = input.checked;
     } else {
       enabled[input.dataset.provider] = input.checked;
@@ -222,7 +226,7 @@ function renderAccountRow(provider, account, settings, container) {
       createToggle({
         providerId: provider.id,
         accountId: account.id,
-        label: account.name ?? account.id,
+        label: accountLabel(account),
         checked: isAccountEnabled(settings, provider.id, account.id),
       }),
     ),

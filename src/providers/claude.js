@@ -1,5 +1,11 @@
 import { getProviderSettings, isAccountEnabled } from "../settings.js";
 import {
+  collectStoreAccounts,
+  listStores,
+  storeAccountId,
+  storeRequestOptions,
+} from "./containers.js";
+import {
   UsageError,
   clampPercent,
   fetchJson,
@@ -10,8 +16,9 @@ import {
 
 export const CLAUDE_HOST_PERMISSION = "https://claude.ai/*";
 
-const API_BASE = "https://claude.ai/api";
-const SIGNED_OUT = "Sign in to claude.ai first.";
+const ORIGIN = "https://claude.ai";
+const HOST = "claude.ai";
+const API_BASE = `${ORIGIN}/api`;
 
 const LIMIT_LABELS = {
   session: "5 hours",
@@ -28,12 +35,16 @@ const LEGACY_WINDOW_LABELS = {
   seven_day_cowork: "Weekly (Cowork)",
 };
 
-function getJson(path) {
-  return fetchJson(`${API_BASE}${path}`, { signedOutMessage: SIGNED_OUT });
+function isSessionCookie(name) {
+  return name === "sessionKey";
 }
 
-async function fetchOrganizations() {
-  const organizations = await getJson("/organizations");
+function getJson(path, store) {
+  return fetchJson(`${API_BASE}${path}`, storeRequestOptions(store, HOST));
+}
+
+async function fetchOrganizations(store) {
+  const organizations = await getJson("/organizations", store);
 
   if (!Array.isArray(organizations)) {
     throw new UsageError("error", "Unexpected organization list from claude.ai.");
@@ -43,9 +54,11 @@ async function fetchOrganizations() {
     .filter((organization) => organization?.uuid)
     .filter((organization) => organization?.capabilities?.includes("chat"))
     .map((organization) => ({
-      id: organization.uuid,
+      id: storeAccountId(store, organization.uuid),
+      organizationId: organization.uuid,
       name: organization.name ?? "Claude",
       type: organization.raven_type ?? null,
+      container: store.name,
     }));
 
   if (usable.length === 0) {
@@ -129,9 +142,9 @@ function toSpend(spend) {
   };
 }
 
-async function fetchOrganizationUsage(organization) {
+async function fetchOrganizationUsage(store, organizationId, account) {
   try {
-    const payload = await getJson(`/organizations/${organization.id}/usage`);
+    const payload = await getJson(`/organizations/${organizationId}/usage`, store);
 
     if (!payload || typeof payload !== "object") {
       throw new UsageError("error", "Unexpected usage response from claude.ai.");
@@ -141,18 +154,30 @@ async function fetchOrganizationUsage(organization) {
     const usageLimits = limits.length > 0 ? limits : fromLegacyWindows(payload);
 
     if (usageLimits.length === 0) {
-      return { ...organization, state: "empty", message: "No usage reported." };
+      return { ...account, state: "empty", message: "No usage reported." };
     }
 
     return {
-      ...organization,
+      ...account,
       state: "ok",
       limits: usageLimits,
       spend: toSpend(payload.spend),
     };
   } catch (error) {
-    return { ...organization, ...toErrorState(error) };
+    return { ...account, ...toErrorState(error) };
   }
+}
+
+async function fetchStoreAccounts(store, settings, providerId) {
+  const organizations = await fetchOrganizations(store);
+
+  return Promise.all(
+    organizations.map(({ organizationId, ...account }) =>
+      isAccountEnabled(settings, providerId, account.id)
+        ? fetchOrganizationUsage(store, organizationId, account)
+        : { ...account, state: "disabled", message: "Hidden in settings." },
+    ),
+  );
 }
 
 export async function fetchClaudeUsage() {
@@ -171,14 +196,14 @@ export async function fetchClaudeUsage() {
   }
 
   try {
-    const settings = await getProviderSettings();
-    const organizations = await fetchOrganizations();
-    const accounts = await Promise.all(
-      organizations.map((organization) =>
-        isAccountEnabled(settings, provider.id, organization.id)
-          ? fetchOrganizationUsage(organization)
-          : { ...organization, state: "disabled", message: "Hidden in settings." },
-      ),
+    const [settings, stores] = await Promise.all([
+      getProviderSettings(),
+      listStores(ORIGIN, isSessionCookie),
+    ]);
+    const accounts = await collectStoreAccounts(
+      stores,
+      (store) => fetchStoreAccounts(store, settings, provider.id),
+      provider.name,
     );
 
     return {

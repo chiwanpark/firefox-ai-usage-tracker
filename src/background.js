@@ -1,5 +1,6 @@
 import { mergeEntry, readCache, writeCache } from "./cache.js";
-import { PROVIDERS } from "./providers/index.js";
+import { registerCookieBridge } from "./providers/containers.js";
+import { COOKIE_HOST_PERMISSIONS, PROVIDERS } from "./providers/index.js";
 import {
   getGeneralSettings,
   getProviderSettings,
@@ -13,6 +14,8 @@ const ALARM_NAME = "refresh-usage";
 
 let refreshing = null;
 let writeQueue = Promise.resolve();
+
+registerCookieBridge(COOKIE_HOST_PERMISSIONS);
 
 function broadcast(message) {
   browser.runtime.sendMessage(message).catch(() => {});

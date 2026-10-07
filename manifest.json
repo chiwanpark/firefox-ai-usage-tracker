@@ -14,7 +14,11 @@
   },
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "cookies",
+    "contextualIdentities",
+    "webRequest",
+    "webRequestBlocking"
   ],
   "host_permissions": [
     "https://claude.ai/*",
