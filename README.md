@@ -2,6 +2,8 @@
 
 A Firefox extension that shows usage of LLM services.
 
+Install it from [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/ai-usage-tracker-extension/).
+
 ## Status
 
 - Claude (claude.ai subscription usage) — reads the rolling utilization windows from your signed-in session.
